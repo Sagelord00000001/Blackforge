@@ -42,6 +42,38 @@ class LLMProviderError(BlackforgeError):
     """Raised on LLM provider failures."""
 
 
+class LLMModelNotFoundError(LLMProviderError):
+    """Raised when a configured model cannot be located or downloaded."""
+
+
+class LLMModelDownloadError(LLMProviderError):
+    """Raised when model weight download fails."""
+
+
+class LLMInsufficientMemoryError(LLMProviderError):
+    """Raised when a model cannot be loaded due to memory constraints."""
+
+
+class LLMUnsupportedDeviceError(LLMProviderError):
+    """Raised when the requested device is not supported."""
+
+
+class LLMInferenceError(LLMProviderError):
+    """Raised when inference fails."""
+
+
+class LLMMalformedStructuredResponseError(LLMProviderError):
+    """Raised when structured output cannot be parsed/validated."""
+
+
+class LLMTimeoutError(LLMProviderError):
+    """Raised when an inference call times out."""
+
+
+class LLMFallbackActivated(LLMProviderError):
+    """Raised when the primary provider fails and fallback is used."""
+
+
 class MemoryError(BlackforgeError):
     """Raised on memory system failures."""
 

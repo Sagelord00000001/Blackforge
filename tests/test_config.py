@@ -16,8 +16,18 @@ class TestBlackforgeConfig:
 
     def test_llm_defaults(self) -> None:
         config = BlackforgeConfig()
-        assert config.llm.provider == "ollama"
-        assert config.llm.model == "llama3"
+        assert config.llm.provider == "mock"
+        assert config.llm.device == "auto"
+        assert config.llm.context_length == 8192
+        assert config.llm.max_output_tokens == 2048
+        assert config.llm.temperature == 0.7
+
+    def test_llm_extended_fields(self) -> None:
+        config = BlackforgeConfig()
+        assert config.llm.dtype == "auto"
+        assert config.llm.quantization is None
+        assert config.llm.allow_download is True
+        assert config.llm.cache_dir is None
 
     def test_execution_defaults(self) -> None:
         config = BlackforgeConfig()

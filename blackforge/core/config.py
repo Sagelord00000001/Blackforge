@@ -8,13 +8,21 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class LLMConfig(BaseModel):
-    provider: str = "ollama"
-    model: str = "llama3"
+    provider: str = "mock"
+    model: str = "Qwen/Qwen2.5-3B-Instruct"
     base_url: str = "http://localhost:11434"
     api_key: str | None = None
     api_key_secondary: str | None = None
     timeout_seconds: int = 120
     max_retries: int = 2
+    device: str = "auto"
+    dtype: str = "auto"
+    quantization: str | None = None
+    context_length: int = 8192
+    max_output_tokens: int = 2048
+    temperature: float = 0.7
+    allow_download: bool = True
+    cache_dir: str | None = None
 
 
 class AuthorizationConfig(BaseModel):
@@ -77,13 +85,21 @@ def load_config(env_file: str | None = None) -> BlackforgeConfig:
         data_dir=_env("BLACKFORGE_DATA_DIR", "./data"),
         db_path=_env("BLACKFORGE_DB_PATH", "./data/blackforge.db"),
         llm=LLMConfig(
-            provider=_env("BLACKFORGE_LLM_PROVIDER", "ollama"),
-            model=_env("BLACKFORGE_LLM_MODEL", "llama3"),
+            provider=_env("BLACKFORGE_LLM_PROVIDER", "mock"),
+            model=_env("BLACKFORGE_LLM_MODEL", "Qwen/Qwen2.5-3B-Instruct"),
             base_url=_env("BLACKFORGE_LLM_BASE_URL", "http://localhost:11434"),
             api_key=_env("BLACKFORGE_LLM_API_KEY"),
             api_key_secondary=_env("BLACKFORGE_LLM_API_KEY_SECONDARY"),
             timeout_seconds=int(_env("BLACKFORGE_LLM_TIMEOUT_SECONDS", 120)),
             max_retries=int(_env("BLACKFORGE_LLM_MAX_RETRIES", 2)),
+            device=_env("BLACKFORGE_LLM_DEVICE", "auto"),
+            dtype=_env("BLACKFORGE_LLM_DTYPE", "auto"),
+            quantization=_env("BLACKFORGE_LLM_QUANTIZATION") or None,
+            context_length=int(_env("BLACKFORGE_LLM_CONTEXT_LENGTH", 8192)),
+            max_output_tokens=int(_env("BLACKFORGE_MAX_TOKENS", 2048)),
+            temperature=float(_env("BLACKFORGE_LLM_TEMPERATURE", 0.7)),
+            allow_download=_env("BLACKFORGE_LLM_ALLOW_DOWNLOAD", "true").lower() == "true",
+            cache_dir=_env("BLACKFORGE_LLM_CACHE_DIR") or None,
         ),
         authorization=AuthorizationConfig(
             mode=_env("BLACKFORGE_AUTH_MODE", "strict"),

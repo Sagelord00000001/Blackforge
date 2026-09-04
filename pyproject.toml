@@ -39,6 +39,11 @@ dev = [
     "mypy>=1.10,<2.0",
     "ruff>=0.5,<1.0",
 ]
+llm = [
+    "torch>=2.0",
+    "transformers>=4.37",
+    "accelerate>=0.27",
+]
 colab = [
     "ipython>=8.0",
     "notebook>=7.0",
@@ -56,6 +61,9 @@ addopts = [
     "-v",
     "--tb=short",
     "--strict-markers",
+]
+markers = [
+    "integration: requires real model download (not run in CI by default)",
 ]
 
 [tool.mypy]

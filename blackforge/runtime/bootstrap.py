@@ -16,6 +16,33 @@ from blackforge.mission.manager import MissionManager
 log = get_logger("runtime.bootstrap")
 
 
+def _resolve_provider(config: BlackforgeConfig) -> LLMProvider:
+    """Resolve LLMProvider from configuration.
+
+    Providers:
+      - 'mock': MockLLMProvider (default, always works)
+      - 'ollama': OllamaProvider (requires Ollama server)
+      - 'huggingface' / 'hf': HuggingFaceProvider (requires torch+transformers)
+    """
+    provider_name = config.llm.provider.lower()
+
+    if provider_name in ("mock", "testing"):
+        return MockLLMProvider(model=config.llm.model)
+
+    if provider_name == "ollama":
+        from blackforge.intelligence.llm.ollama import OllamaProvider
+
+        return OllamaProvider(config=config.llm)
+
+    if provider_name in ("huggingface", "hf", "transformers"):
+        from blackforge.intelligence.llm.huggingface import HuggingFaceProvider
+
+        return HuggingFaceProvider(config=config.llm)
+
+    log.warning("unknown_provider_falling_back_to_mock", provider=provider_name)
+    return MockLLMProvider(model=config.llm.model)
+
+
 class BlackforgeApp:
     def __init__(
         self,
@@ -34,7 +61,7 @@ class BlackforgeApp:
         self.authorization = AuthorizationBoundary(mode=self.config.authorization.mode)
 
         self.memory: MemoryBackend = memory_backend or InMemoryBackend()
-        self.llm: LLMProvider = llm_provider or MockLLMProvider()
+        self.llm: LLMProvider = llm_provider or _resolve_provider(self.config)
         self.model_router = ModelRouter(default_provider=self.llm)
 
         self.capability_registry.register_defaults()
@@ -42,6 +69,8 @@ class BlackforgeApp:
         log.info(
             "blackforge_initialized",
             environment=self.config.environment,
+            provider=self.llm.metadata().get("provider", "?"),
+            model=self.llm.metadata().get("model", "?"),
             capabilities=self.capability_registry.list_capabilities(),
         )
 

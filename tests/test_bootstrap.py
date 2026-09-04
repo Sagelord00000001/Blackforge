@@ -57,3 +57,8 @@ class TestBootstrap:
         cap = app.capability_registry.get("mock_discovery")
         result = cap.execute("example.com")
         assert result.success is True
+
+    def test_provider_resolves_to_mock(self) -> None:
+        app = bootstrap()
+        assert app.config.llm.provider == "mock"
+        assert isinstance(app.llm, MockLLMProvider)

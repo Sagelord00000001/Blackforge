@@ -1,3 +1,17 @@
-from blackforge.intelligence.llm.base import LLMProvider, LLMRequest, LLMResponse
+from blackforge.intelligence.llm.base import (
+    LLMProvider,
+    LLMRequest,
+    LLMResponse,
+    Message,
+    ToolCall,
+    Usage,
+)
 
-__all__ = ["LLMProvider", "LLMRequest", "LLMResponse"]
+__all__ = [
+    "LLMProvider",
+    "LLMRequest",
+    "LLMResponse",
+    "Message",
+    "ToolCall",
+    "Usage",
+]
