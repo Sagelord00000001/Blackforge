@@ -1,0 +1,79 @@
+# Phase 1 Colab Validation
+
+## How to Open
+
+Click the **Open in Colab** badge in the repository README, or manually open the notebook:
+
+```
+notebooks/blackforge_phase1_colab.ipynb
+```
+
+in Google Colab: https://colab.research.google.com
+
+## What It Validates
+
+The notebook performs a sequential, deterministic validation of the entire Phase 1 runtime:
+
+| Stage | What it checks |
+|---|---|
+| Repository | Clones/updates repo, verifies commit history |
+| Dependencies | Installs `blackforge[dev,llm,colab]` |
+| Imports | All 24 Blackforge backend modules load cleanly |
+| Tests | Full `pytest -q` suite (177 tests) |
+| Bootstrap | `BlackforgeApp.healthy()` and `verify()` pass |
+| Hardware | GPU/CPU detection via PyTorch + nvidia-smi |
+| Real inference | HuggingFace model loads and generates output through provider abstraction |
+| Structured output | JSON extraction, schema validation, parsed result |
+| Tool-call flow | LLM → ToolCall → CapabilityRegistry → CapabilityResult → ChatContext |
+| ModelRouter | All 6 TaskCategory routes + custom routing rules + health check |
+
+## Expected Successful Output
+
+The final cell prints:
+
+```
+============================================================
+BLACKFORGE PHASE 1 VALIDATION
+============================================================
+Repository              PASS
+Imports                 PASS
+Automated tests         PASS
+Bootstrap               PASS
+Hardware                PASS
+Real inference          PASS
+Structured output       PASS
+Tool-call flow          PASS
+Model router            PASS
+============================================================
+OVERALL RESULT: PASS
+============================================================
+```
+
+## What a Failed Test Means
+
+- **Repository FAIL** — Git clone failed or repo structure changed
+- **Imports FAIL** — A required module has a broken import (check `importlib` error)
+- **Tests FAIL** — One or more pytest tests failed (check stderr above)
+- **Bootstrap FAIL** — `BlackforgeApp` health check failed (config or LLM provider issue)
+- **Hardware FAIL** — Should not happen (CPU fallback always works)
+- **Real inference FAIL** — Model failed to load or generate output (memory, network, or transformers issue)
+- **Structured output FAIL** — Model output could not be parsed as JSON matching the schema
+- **Tool-call flow FAIL** — ToolCall normalization or CapabilityRegistry issue
+- **Model router FAIL** — Routing rule or health check failure
+
+## GPU Recommendations
+
+| GPU | VRAM | Recommended Model | Notes |
+|---|---|---|---|
+| T4 | 15 GB | Qwen/Qwen2.5-3B-Instruct | Default, works well |
+| L4 | 24 GB | Qwen/Qwen3-8B | Better quality |
+| A100 | 40/80 GB | Qwen/Qwen3-8B | Fast inference |
+| No GPU | — | Qwen/Qwen2.5-3B-Instruct | CPU mode, slow |
+
+## Important Notes
+
+1. **First run downloads the model.** Qwen2.5-3B-Instruct is approximately 6 GB. Subsequent runs use the cached model.
+2. **No offensive security actions.** The notebook runs a harmless validation prompt only.
+3. **No secrets required.** The notebook uses local models only — no API keys needed.
+4. **Rerunnable.** Safe to re-run on the same Colab instance. Cached model and installed packages are reused.
+5. **Colab execution: NOT RUN** — the notebook is created and syntax-validated locally. Actual Colab execution has not been performed.

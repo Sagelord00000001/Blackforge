@@ -1,5 +1,7 @@
 # AELIONIX BLACKFORGE
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Sagelord00000001/Blackforge/blob/master/notebooks/blackforge_phase1_colab.ipynb)
+
 **Phase 1 — Runtime LLM Infrastructure**
 
 > **Status:** Phase 1 complete. Runtime LLM providers, hardware detection, token budgeting, and structured output parsing are operational. Safe mock mode remains the default.
@@ -162,6 +164,24 @@ python -m pytest tests/test_structured.py -v
 - Authorization is a first-class system concept
 - Safe to run locally without targeting any external system
 - torch/transformers lazily imported — core works without GPU or heavy deps
+
+## Phase 1 Colab Validation
+
+The fastest way to validate Blackforge Phase 1 is to open the dedicated Google Colab notebook.
+
+The notebook performs:
+- Environment verification
+- Repository verification
+- Dependency installation
+- Import health checks (24 modules)
+- Full regression tests (177 tests)
+- Blackforge bootstrap validation
+- Hardware detection (GPU/CPU)
+- Real HuggingFace model inference
+- Structured output validation
+- Tool-call normalization validation
+- ModelRouter validation
+- Final PASS/FAIL report
 
 ## Roadmap
 
