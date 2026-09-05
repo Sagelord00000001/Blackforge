@@ -17,8 +17,9 @@ Chronological record of per-phase validation. **Validation type matters:**
 | 5 | Reconnaissance Capability Foundation | `c9c2e67` | LOCAL ONLY | full suite pass (438 passed, 3 skipped at this phase) | — | mock adapters only; no network I/O |
 | 6 | Web & API Security | `6705276` | LOCAL ONLY | full suite pass (192 passed, 2 skipped) | — | mock transport only; GET-only; redaction at boundary |
 | 7 | Authentication & Authorization | `20bea56` | LOCAL ONLY | full suite pass (681 passed, 5 skipped at this phase) | — | observation-only; redaction at boundary (literal `REDACTED`/digests); explicit test identities required |
+| 8 | Business Logic & Attack Paths | `10c54f6` | LOCAL ONLY | full suite pass (765 passed, 5 skipped at this phase) | — | deterministic workflow/rule/role modeling; explicit test identities; fail-closed replay gating; VALIDATED only via validation; no attack-graph relationship types |
 
-Latest committed phase at the time of writing: **Phase 7** (`20bea56`).
+Latest committed phase at the time of writing: **Phase 8** (`10c54f6`).
 
 ---
 
@@ -376,3 +377,34 @@ See `docs/web-api-security.md` for the full architecture documentation.
 - Mission isolation and restart persistence across fresh SQLite connections
 
 See `docs/authentication-authorization.md` for the full architecture documentation.
+
+---
+
+## Phase 8 — Business Logic & Attack Paths
+
+**Notebook:** `notebooks/blackforge_phase8_colab.ipynb`
+
+**Validation type:** LOCAL ONLY
+
+**Test result:** full suite pass (765 passed, 5 skipped at this phase)
+
+**Colab result:** —
+
+**Notes / limitations:** deterministic workflow/rule/role modeling; no free-form execution, no credential use, no autonomous identity discovery; explicit authorized test identities required for ownership/role-boundary/replay/validation capabilities; fail-closed replay gating (unknown actions and actions with unknown safety profiles are refused before transport); hypothesis evidence stays HYPOTHESIZED and only `business_logic_validation` elevates to VALIDATED; evidence rows DERIVED_FROM their run's artifact; WORKFLOW/STATE/ACTION/IDENTITY/ROLE/PERMISSION/RESOURCE materialized with has_workflow/has_state/has_action/transitions_to/operates_on/belongs_to/has_permission/applies_to only — no attack-graph relationship types.
+
+### What Phase 8 Validates
+
+- Eleven typed business-logic capabilities registered and executable
+- Full pipeline: capability → mock transport → normalization → evidence (artifact + DERIVED_FROM) → World Model → memory
+- Authorization enforced before transport execution; unknown capabilities rejected
+- `business_logic_ready` bootstrap flag equal to 11 typed capabilities
+- Scope denial before transport; explicit `test_identities` required (no guessing, no unauthorized identities)
+- Fail-closed replay: PROHIBITED/unknown actions refused before transport; actions classified `bounded` only
+- Mock dataset: anomalous `created -> shipped` transition detected, `only_paid_orders_ship` broken, `cancel_after_payment` elevated to validated
+- Evidence elevation: HYPOTHESIZED records; VALIDATED only via validation; artifact rows never VALIDATED
+- World Model: WORKFLOW + APPLICATION (has_workflow), STATES (has_state), ACTIONS with OPERATES_ON, TRANSITIONS_TO edges, RESOURCE --BELONGS_TO--> IDENTITY, ROLE --HAS_PERMISSION--> PERMISSION --APPLIES_TO--> RESOURCE; assertions with rule/invariant/replay/hypothesis/validation prefixes across the workflow revision chain
+- No attack-graph relationship types materialized (EXPLOITS/CAN_COMPROMISE/LEADS_TO/ENABLES absent)
+- Failure states: RATE_LIMITED, REQUEST_FAILED, MALFORMED_RESPONSE, TIMEOUT, LIMITED all produce correct statuses
+- Mission isolation and restart persistence across fresh SQLite connections
+
+See `docs/business-logic.md` for the full architecture documentation.
