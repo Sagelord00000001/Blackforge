@@ -148,3 +148,44 @@ OVERALL RESULT: PASS
 ```
 
 See `docs/memory.md` for the full memory architecture.
+
+## Phase 3 Validation Notebook
+
+`notebooks/blackforge_phase3_colab.ipynb` validates the Phase 3
+Evidence ↔ Memory Integration & Evidence Lifecycle subsystem. Like Phase 2 it
+installs only `blackforge[dev]` (no torch/transformers), so it is lightweight
+and OOM-free on CPU runtimes.
+
+| Stage | What it checks |
+|---|---|
+| Import health | All evidence/memory/bootstrap modules load cleanly |
+| Automated tests | Full `pytest -q` suite (evidence lifecycle + bridge included) |
+| Bootstrap | `app.healthy()`, `evidence_store_ready`, `evidence_memory_link_ready` |
+| No fake authority | LLM claim → `HYPOTHESIZED`; direct `VALIDATED` creation rejected; only `add_validation` reaches `VALIDATED` (+ `VALIDATES` link) |
+| Status transitions | Legal moves applied, illegal downgrades raise, confidence changes audited and status-independent |
+| Lifecycle | Supersede marks the old record without rewriting its status/history |
+| Relationships | Typed links incl. `CORROBORATES` filter retrieval |
+| Contradiction | Both records stay `ACTIVE`, linked by `CONTRADICTS`, nothing deleted |
+| Dedup | Identical evidence same ID, distinct evidence separate IDs |
+| Evidence ↔ memory | Materialize memory referencing evidence; reverse lookups both ways |
+| Restart persistence | Evidence + relationships + linked memory survive close/reopen on fresh SQLite connections |
+| Compensation boundary | Failing memory write leaves no dangling memory record (evidence remains authoritative) |
+
+Expected final output:
+
+```
+============================================================
+BLACKFORGE PHASE 3 VALIDATION (EVIDENCE <-> MEMORY INTEGRATION)
+============================================================
+Repository                             PASS
+...
+OVERALL RESULT: PASS
+============================================================
+```
+
+See `docs/evidence.md` for the full evidence architecture.
+
+> **Behavioral change vs Phase 2:** the Phase 2 notebook's Evidence Integration
+> cell creates `VALIDATED` evidence directly. Phase 3 intentionally forbids
+> that (no fake authority). The Phase 2 notebook is kept as-is for historical
+> record; the Phase 3 notebook demonstrates the corrected workflow.

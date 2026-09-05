@@ -123,3 +123,6 @@ class MemoryManager(MemoryBackend):
         self, memory_type: MemoryType, key: str
     ) -> MemoryRecord | None:
         return self._repo.find_by_logical_key(memory_type, key)
+
+    def find_by_evidence_id(self, evidence_id: str) -> list[MemoryRecord]:
+        return self._repo.find_by_evidence_id(evidence_id)

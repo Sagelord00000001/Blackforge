@@ -62,6 +62,10 @@ class FindingID(_IDStr):
     _prefix = "find"
 
 
+class RelationshipID(_IDStr):
+    _prefix = "rel"
+
+
 class CapabilityID(_IDStr):
     _prefix = "cap"
 
@@ -122,6 +126,25 @@ class Confidence(str, Enum):
     MEDIUM = "medium"
     HIGH = "high"
     CONFIRMED = "confirmed"
+
+    def to_score(self) -> float:
+        """Deterministic numeric mapping used at the evidence <-> memory boundary.
+
+        ``score`` is authoritative for numeric bridges; ``confidence`` stays
+        an enum on evidence to preserve Phase 1/2 compatibility.
+        """
+        return {"low": 0.3, "medium": 0.5, "high": 0.8, "confirmed": 0.95}[self.value]
+
+    @classmethod
+    def from_score(cls, score: float) -> Confidence:
+        """Inverse: map a numeric score back to the nearest confidence level."""
+        if score <= 0.4:
+            return cls.LOW
+        if score <= 0.65:
+            return cls.MEDIUM
+        if score <= 0.9:
+            return cls.HIGH
+        return cls.CONFIRMED
 
 
 class ProvenanceType(str, Enum):

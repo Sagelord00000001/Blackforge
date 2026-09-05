@@ -89,6 +89,10 @@ class MemoryRepository(MemoryBackend):
         """Return the current (highest-version, non-superseded) record for (type, key)."""
 
     @abstractmethod
+    def find_by_evidence_id(self, evidence_id: str) -> list[MemoryRecord]:
+        """Return memory records that reference the given evidence ID."""
+
+    @abstractmethod
     def transaction(self) -> Iterator[None]:
         """Context manager providing an atomic unit of work."""
 
@@ -213,6 +217,15 @@ class InMemoryRepository(MemoryRepository):
             if not candidates:
                 return None
             return max(candidates, key=lambda r: r.version)
+
+    def find_by_evidence_id(self, evidence_id: str) -> list[MemoryRecord]:
+        target = str(evidence_id)
+        with self._lock:
+            return [
+                rec
+                for rec in self._records.values()
+                if any(str(e) == target for e in rec.evidence_ids)
+            ]
 
     @contextmanager
     def transaction(self) -> Iterator[None]:
@@ -506,6 +519,16 @@ class SQLiteMemoryRepository(MemoryRepository):
                 (memory_type.value, key, MemoryLifecycle.SUPERSEDED.value),
             ).fetchone()
         return self._row_to_record(row) if row else None
+
+    def find_by_evidence_id(self, evidence_id: str) -> list[MemoryRecord]:
+        target = str(evidence_id)
+        pattern = f'%"{target}"%'
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT * FROM memory WHERE evidence_ids LIKE ? ORDER BY created_at DESC",
+                (pattern,),
+            ).fetchall()
+        return [self._row_to_record(r) for r in rows]
 
     def _persist(self, record: MemoryRecord) -> MemoryRecord:
         self.store(record)

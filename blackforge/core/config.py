@@ -41,6 +41,11 @@ class MemoryConfig(BaseModel):
     db_path: str = "./data/memory.db"
 
 
+class EvidenceConfig(BaseModel):
+    backend: Literal["sqlite", "in_memory"] = "sqlite"
+    db_path: str = "./data/evidence.db"
+
+
 class MissionDefaults(BaseModel):
     default_confidence_threshold: float = 0.7
 
@@ -57,6 +62,7 @@ class BlackforgeConfig(BaseModel):
     execution: ExecutionConfig = Field(default_factory=ExecutionConfig)
     memory: MemoryConfig = Field(default_factory=MemoryConfig)
     mission_defaults: MissionDefaults = Field(default_factory=MissionDefaults)
+    evidence: EvidenceConfig = Field(default_factory=EvidenceConfig)
 
     @field_validator("data_dir", mode="after")
     @classmethod
@@ -68,6 +74,7 @@ class BlackforgeConfig(BaseModel):
         Path(self.data_dir).mkdir(parents=True, exist_ok=True)
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         Path(self.memory.db_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(self.evidence.db_path).parent.mkdir(parents=True, exist_ok=True)
 
 
 def _env(key: str, default: Any = None) -> Any:
@@ -116,6 +123,10 @@ def load_config(env_file: str | None = None) -> BlackforgeConfig:
         memory=MemoryConfig(
             backend=_env("BLACKFORGE_MEMORY_BACKEND", "sqlite"),
             db_path=_env("BLACKFORGE_MEMORY_DB_PATH", "./data/memory.db"),
+        ),
+        evidence=EvidenceConfig(
+            backend=_env("BLACKFORGE_EVIDENCE_BACKEND", "sqlite"),
+            db_path=_env("BLACKFORGE_EVIDENCE_DB_PATH", "./data/evidence.db"),
         ),
         mission_defaults=MissionDefaults(
             default_confidence_threshold=float(

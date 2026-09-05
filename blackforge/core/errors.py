@@ -34,6 +34,14 @@ class EvidenceError(BlackforgeError):
     """Raised on evidence-related failures."""
 
 
+class EvidenceRuleError(EvidenceError):
+    """Raised when evidence violates a transition/rule boundary.
+
+    For example an unauthorized request to create or transition evidence to
+    ``VALIDATED`` without going through a validation workflow.
+    """
+
+
 class CapabilityError(BlackforgeError):
     """Raised on capability-related failures."""
 

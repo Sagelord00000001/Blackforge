@@ -7,6 +7,12 @@ from blackforge.capabilities.registry import CapabilityRegistry
 from blackforge.core.config import BlackforgeConfig, load_config
 from blackforge.core.errors import ConfigurationError
 from blackforge.core.logging import get_logger, setup_logging
+from blackforge.evidence.bridge import EvidenceMemoryBridge
+from blackforge.evidence.repository import (
+    EvidenceRepository,
+    InMemoryEvidenceRepository,
+    SQLiteEvidenceRepository,
+)
 from blackforge.evidence.store import EvidenceStore
 from blackforge.intelligence.llm.mock import MockLLMProvider
 from blackforge.intelligence.routing.router import ModelRouter
@@ -19,6 +25,25 @@ if TYPE_CHECKING:
     from blackforge.memory.base import MemoryBackend
 
 log = get_logger("runtime.bootstrap")
+
+
+def _resolve_evidence(
+    config: BlackforgeConfig,
+    backend: EvidenceRepository | None = None,
+) -> EvidenceStore:
+    """Resolve the evidence controller from configuration.
+
+    An explicitly provided repository is wrapped in an :class:`EvidenceStore`.
+    Otherwise ``evidence.backend`` selects SQLite (persistent) or an
+    in-memory repository (testing/discardable).
+    """
+    if isinstance(backend, EvidenceStore):
+        return backend
+    if backend is not None:
+        return EvidenceStore(repository=backend)
+    if config.evidence.backend == "in_memory":
+        return EvidenceStore(repository=InMemoryEvidenceRepository())
+    return EvidenceStore(repository=SQLiteEvidenceRepository(config.evidence.db_path))
 
 
 def _resolve_memory(
@@ -72,6 +97,7 @@ class BlackforgeApp:
         self,
         config: BlackforgeConfig | None = None,
         memory_backend: MemoryBackend | None = None,
+        evidence_backend: EvidenceRepository | None = None,
         llm_provider: LLMProvider | None = None,
     ) -> None:
         self.config = config or load_config()
@@ -81,10 +107,13 @@ class BlackforgeApp:
 
         self.mission_manager = MissionManager()
         self.capability_registry = CapabilityRegistry()
-        self.evidence_store = EvidenceStore()
+        self.evidence_store: EvidenceStore = _resolve_evidence(
+            self.config, evidence_backend
+        )
         self.authorization = AuthorizationBoundary(mode=self.config.authorization.mode)
 
         self.memory: MemoryManager = _resolve_memory(self.config, memory_backend)
+        self.evidence_bridge = EvidenceMemoryBridge(self.evidence_store, self.memory)
         self.llm: LLMProvider = llm_provider or _resolve_provider(self.config)
         self.model_router = ModelRouter(default_provider=self.llm)
 
@@ -107,7 +136,10 @@ class BlackforgeApp:
             "memory_ready": self.memory.health_check(),
             "llm_ready": self.llm.health_check(),
             "authorization_ready": self.authorization is not None,
-            "evidence_store_ready": self.evidence_store is not None,
+            "evidence_store_ready": self.evidence_store.health_check(),
+            "evidence_memory_link_ready": (
+                self.evidence_store.health_check() and self.memory.health_check()
+            ),
             "model_router_ready": self.model_router is not None,
         }
 
@@ -119,6 +151,7 @@ class BlackforgeApp:
 def bootstrap(
     config_path: str | None = None,
     memory_backend: MemoryBackend | None = None,
+    evidence_backend: EvidenceRepository | None = None,
     llm_provider: LLMProvider | None = None,
 ) -> BlackforgeApp:
     try:
@@ -129,6 +162,7 @@ def bootstrap(
     app = BlackforgeApp(
         config=config,
         memory_backend=memory_backend,
+        evidence_backend=evidence_backend,
         llm_provider=llm_provider,
     )
 
