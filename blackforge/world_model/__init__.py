@@ -4,6 +4,8 @@ from blackforge.world_model.canonical import (
     compute_entity_dedup_key,
     compute_relationship_dedup_key,
     normalize_entity_name,
+    normalize_hostname_or_ip,
+    normalize_network,
 )
 from blackforge.world_model.materializer import EntityFact, RelationshipFact, WorldMaterializer
 from blackforge.world_model.models import (
@@ -56,4 +58,6 @@ __all__ = [
     "compute_entity_dedup_key",
     "compute_relationship_dedup_key",
     "normalize_entity_name",
+    "normalize_hostname_or_ip",
+    "normalize_network",
 ]

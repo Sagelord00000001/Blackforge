@@ -58,6 +58,32 @@ def normalize_ip(value: str) -> str:
     return str(ipaddress.ip_address(value.strip()))
 
 
+def normalize_hostname_or_ip(value: str) -> str:
+    """Normalize an asset name: an IP literal when it parses, otherwise a hostname."""
+    text = value.strip()
+    try:
+        return normalize_ip(text)
+    except ValueError:
+        return normalize_hostname(text)
+
+
+def normalize_network(value: str) -> str:
+    """Normalize a network to canonical form.
+
+    Accepts a CIDR prefix (``192.0.2.0/24``) or a bare IP literal (treated as a
+    single-address network). Rejects everything else.
+    """
+    text = value.strip()
+    try:
+        return str(ipaddress.ip_network(text, strict=False))
+    except ValueError:
+        pass
+    try:
+        return str(ipaddress.ip_address(text))
+    except ValueError as exc:
+        raise ValueError("invalid network") from exc
+
+
 def normalize_port(value: int | str) -> str:
     """Validate a port and return it as a normal decimal string."""
     try:
@@ -71,8 +97,8 @@ def normalize_port(value: int | str) -> str:
 
 _NAME_NORMALIZERS: dict[EntityType, str] = {
     EntityType.ENDPOINT: "url",
-    EntityType.NETWORK: "ip",
-    EntityType.ASSET: "url",
+    EntityType.NETWORK: "network",
+    EntityType.ASSET: "hostname-or-ip",
     EntityType.SERVICE: "hostname",
     EntityType.APPLICATION: "hostname",
     EntityType.IDENTITY: "hostname",
@@ -89,15 +115,19 @@ _NAME_NORMALIZERS: dict[EntityType, str] = {
 def normalize_entity_name(entity_type: EntityType, name: str) -> str:
     """Normalize an entity name by its type.
 
-    Endpoints are treated as URLs (they are reachable targets), networks and
-    IP-family entities as IP literals where applicable, other assets as
-    hostnames, and abstract kinds as slashed slugs. ``slug`` does no
-    aggressive stemming — only whitespace trim + lowercase — so distinct names
-    stay distinct.
+    Endpoints are treated as URLs (they are reachable targets), networks as
+    CIDR ranges or IP literals, assets as IP literals or hostnames, other
+    IP-family entities as IP literals where applicable, and abstract kinds as
+    slashed slugs. ``slug`` does no aggressive stemming — only whitespace trim +
+    lowercase — so distinct names stay distinct.
     """
     normalizer = _NAME_NORMALIZERS.get(entity_type, "slug")
     if normalizer == "url":
         return normalize_url(name)
+    if normalizer == "network":
+        return normalize_network(name)
+    if normalizer == "hostname-or-ip":
+        return normalize_hostname_or_ip(name)
     if normalizer == "ip":
         return normalize_ip(name)
     if normalizer == "hostname":

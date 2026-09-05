@@ -101,3 +101,23 @@ class WorldRuleError(WorldError):
 
 class ValidationError(BlackforgeError):
     """Raised when input validation fails."""
+
+
+class ReconError(BlackforgeError):
+    """Raised on reconnaissance capability failures."""
+
+
+class ReconNormalizationError(ReconError):
+    """Raised when a reconnaissance tool's raw output cannot be parsed/validated."""
+
+
+class ReconExecutionError(ReconError):
+    """Raised when a reconnaissance adapter fails to execute."""
+
+
+class ReconTimeoutError(ReconError):
+    """Raised when a reconnaissance adapter exceeds its execution time budget."""
+
+
+class ReconLimitError(ReconError):
+    """Raised when a reconnaissance observation or result limit is exceeded."""

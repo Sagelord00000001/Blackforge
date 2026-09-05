@@ -19,6 +19,7 @@ from blackforge.intelligence.routing.router import ModelRouter
 from blackforge.memory.manager import MemoryManager
 from blackforge.memory.repository import InMemoryRepository, SQLiteMemoryRepository
 from blackforge.mission.manager import MissionManager
+from blackforge.recon.engine import ReconEngine
 from blackforge.world_model.repository import (
     InMemoryWorldRepository,
     SQLiteWorldRepository,
@@ -147,6 +148,13 @@ class BlackforgeApp:
         self.world_model: WorldModelStore = _resolve_world_model(
             self.config, world_model_backend
         )
+        self.recon_engine = ReconEngine(
+            capability_registry=self.capability_registry,
+            evidence_store=self.evidence_store,
+            world_model=self.world_model,
+            memory_bridge=self.evidence_bridge,
+            authorization=self.authorization,
+        )
         self.llm: LLMProvider = llm_provider or _resolve_provider(self.config)
         self.model_router = ModelRouter(default_provider=self.llm)
 
@@ -174,6 +182,10 @@ class BlackforgeApp:
                 self.evidence_store.health_check() and self.memory.health_check()
             ),
             "world_model_ready": self.world_model.health_check(),
+            "recon_ready": (
+                self.recon_engine is not None
+                and len(self.recon_engine.capabilities) == 6
+            ),
             "model_router_ready": self.model_router is not None,
         }
 

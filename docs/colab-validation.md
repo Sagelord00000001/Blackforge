@@ -235,3 +235,51 @@ See `docs/world-model.md` for the full world model architecture.
 > Offensive edge types (`LEADS_TO`, `ENABLES`, `EXPLOITS`, `CAN_COMPROMISE`,
 > privilege-escalation paths) are rejected at the enum layer. An Attack Graph
 > layer is explicitly out of scope for Phase 4.
+
+## Phase 5 Validation Notebook
+
+`notebooks/blackforge_phase5_colab.ipynb` validates the Phase 5
+**Reconnaissance Capability Foundation** subsystem. It installs only
+`blackforge[dev]` (no torch/transformers), so it is lightweight and OOM-free
+on CPU runtimes.
+
+| Stage | What it checks |
+|---|---|
+| Import health | All `blackforge.recon.*` modules load cleanly (27 modules total) |
+| Automated tests | Full `pytest -q` suite (recon included) |
+| Bootstrap | `app.healthy()` + new `recon_ready` flag (engine present, exactly 6 capabilities) |
+| Capability surface | Six typed recon capabilities registered with expected ids |
+| Pipeline | Capability → mock tool → normalization → evidence → world model → memory, per capability |
+| Evidence integrity | Every observation row links `derived_from` its run's artifact; dedup keys stable |
+| World materialization | Host→ASSET, service→SERVICE+exposes, technology→USES, HTTP/TLS→ENDPOINT |
+| Idempotent reruns | Rerun returns identical evidence ids and unchanged world state |
+| No generic executor | Only the six typed capability contracts exist |
+| Scope authorization | Out-of-scope targets denied before tool execution |
+| Capability authorization | Capabilities outside `allowed_capabilities` denied |
+| Mission isolation | A second mission's run is fully disjoint in evidence and world state |
+| Restart persistence | Fresh SQLite connections see the same evidence and world facts |
+
+Expected final output:
+
+```
+PHASE 5 VALIDATION SUMMARY
+============================================================
+  [PASS] repository_integrity
+  [PASS] phase5_modules
+  [PASS] imports
+  [PASS] bootstrap_recon_ready
+  [PASS] no_generic_executor
+  [PASS] capability_surface
+  ...
+  [PASS] restart_persistence
+============================================================
+RESULT: 13 passed, 0 failed
+
+BLACKFORGE PHASE 5 VALIDATION: SUCCESS
+```
+
+See `docs/reconnaissance.md` for the full reconnaissance architecture.
+
+> **Scope note:** reconnaissance describes the environment (mock tool data, metadata only)
+> and produces evidence-backed facts. It never exploits, never touches credentials, and
+> never uses network I/O. Attack path reasoning remains out of scope.
