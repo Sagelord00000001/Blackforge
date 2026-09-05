@@ -162,6 +162,7 @@ class HuggingFaceProvider(LLMProvider):
         success = bool(resp.content and resp.content.strip())
         return {
             "success": success,
+            "provider": "huggingface",
             "model": self.config.model,
             "device": self.device,
             "dtype": self._load_result.dtype if self._load_result else None,
