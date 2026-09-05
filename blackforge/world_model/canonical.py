@@ -112,6 +112,10 @@ _NAME_NORMALIZERS: dict[EntityType, str] = {
     EntityType.SOURCE_COMPONENT: "slug",
     EntityType.DATA_STORE: "hostname",
     EntityType.TRUST_RELATION: "slug",
+    EntityType.WORKFLOW: "slug",
+    EntityType.BUSINESS_ACTION: "slug",
+    EntityType.BUSINESS_STATE: "slug",
+    EntityType.BUSINESS_RULE: "slug",
 }
 
 

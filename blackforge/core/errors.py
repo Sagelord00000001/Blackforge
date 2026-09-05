@@ -153,3 +153,19 @@ class AuthExecutionError(AuthError):
 
 class AuthTimeoutError(AuthError):
     """Raised when an auth capability exceeds its execution time budget."""
+
+
+class BusinessLogicError(BlackforgeError):
+    """Raised on business logic / attack-path capability failures."""
+
+
+class BusinessLogicNormalizationError(BusinessLogicError):
+    """Raised when business logic raw output cannot be parsed/validated."""
+
+
+class BusinessLogicExecutionError(BusinessLogicError):
+    """Raised when a business logic capability fails to execute."""
+
+
+class BusinessLogicTimeoutError(BusinessLogicError):
+    """Raised when a business logic capability exceeds its execution time budget."""

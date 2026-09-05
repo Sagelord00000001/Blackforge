@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from blackforge.auth.engine import AuthEngine
 from blackforge.authorization import AuthorizationBoundary
+from blackforge.business_logic.engine import BusinessLogicEngine
 from blackforge.capabilities.registry import CapabilityRegistry
 from blackforge.core.config import BlackforgeConfig, load_config
 from blackforge.core.errors import ConfigurationError
@@ -171,6 +172,13 @@ class BlackforgeApp:
             memory_bridge=self.evidence_bridge,
             authorization=self.authorization,
         )
+        self.business_logic_engine = BusinessLogicEngine(
+            capability_registry=self.capability_registry,
+            evidence_store=self.evidence_store,
+            world_model=self.world_model,
+            memory_bridge=self.evidence_bridge,
+            authorization=self.authorization,
+        )
         self.llm: LLMProvider = llm_provider or _resolve_provider(self.config)
         self.model_router = ModelRouter(default_provider=self.llm)
 
@@ -209,6 +217,10 @@ class BlackforgeApp:
             "auth_ready": (
                 self.auth_engine is not None
                 and len(self.auth_engine.capabilities) == 11
+            ),
+            "business_logic_ready": (
+                self.business_logic_engine is not None
+                and len(self.business_logic_engine.capabilities) == 11
             ),
             "model_router_ready": self.model_router is not None,
         }

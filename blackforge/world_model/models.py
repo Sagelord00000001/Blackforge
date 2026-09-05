@@ -42,6 +42,10 @@ class EntityType(str, Enum):
     SOURCE_COMPONENT = "source_component"
     DATA_STORE = "data_store"
     TRUST_RELATION = "trust_relation"
+    WORKFLOW = "workflow"
+    BUSINESS_ACTION = "business_action"
+    BUSINESS_STATE = "business_state"
+    BUSINESS_RULE = "business_rule"
 
 
 class RelationshipType(str, Enum):
@@ -71,6 +75,11 @@ class RelationshipType(str, Enum):
     LOCATED_IN = "located_in"
     TRUSTS = "trusts"
     ASSOCIATED_WITH = "associated_with"
+    HAS_WORKFLOW = "has_workflow"
+    HAS_ACTION = "has_action"
+    HAS_STATE = "has_state"
+    TRANSITIONS_TO = "transitions_to"
+    OPERATES_ON = "operates_on"
 
 
 class WorldLifecycle(str, Enum):
