@@ -121,3 +121,19 @@ class ReconTimeoutError(ReconError):
 
 class ReconLimitError(ReconError):
     """Raised when a reconnaissance observation or result limit is exceeded."""
+
+
+class WebApiError(BlackforgeError):
+    """Raised on web/api security capability failures."""
+
+
+class WebApiNormalizationError(WebApiError):
+    """Raised when web/api raw output cannot be parsed/validated."""
+
+
+class WebApiExecutionError(WebApiError):
+    """Raised when a web/api capability fails to execute."""
+
+
+class WebApiTimeoutError(WebApiError):
+    """Raised when a web/api capability exceeds its execution time budget."""

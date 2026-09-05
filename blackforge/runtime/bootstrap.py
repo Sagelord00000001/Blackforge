@@ -20,6 +20,7 @@ from blackforge.memory.manager import MemoryManager
 from blackforge.memory.repository import InMemoryRepository, SQLiteMemoryRepository
 from blackforge.mission.manager import MissionManager
 from blackforge.recon.engine import ReconEngine
+from blackforge.webapi.engine import WebApiEngine
 from blackforge.world_model.repository import (
     InMemoryWorldRepository,
     SQLiteWorldRepository,
@@ -155,6 +156,13 @@ class BlackforgeApp:
             memory_bridge=self.evidence_bridge,
             authorization=self.authorization,
         )
+        self.webapi_engine = WebApiEngine(
+            capability_registry=self.capability_registry,
+            evidence_store=self.evidence_store,
+            world_model=self.world_model,
+            memory_bridge=self.evidence_bridge,
+            authorization=self.authorization,
+        )
         self.llm: LLMProvider = llm_provider or _resolve_provider(self.config)
         self.model_router = ModelRouter(default_provider=self.llm)
 
@@ -185,6 +193,10 @@ class BlackforgeApp:
             "recon_ready": (
                 self.recon_engine is not None
                 and len(self.recon_engine.capabilities) == 6
+            ),
+            "webapi_ready": (
+                self.webapi_engine is not None
+                and len(self.webapi_engine.capabilities) == 10
             ),
             "model_router_ready": self.model_router is not None,
         }

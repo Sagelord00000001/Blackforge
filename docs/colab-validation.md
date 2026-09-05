@@ -15,8 +15,9 @@ Chronological record of per-phase validation. **Validation type matters:**
 | 3 | Evidence & Memory Integration | `9041d57` | LOCAL ONLY | full suite pass | — | no-fake-authority semantics corrected vs Phase 2 notebook |
 | 4 | World Model Foundation | `c2c7191` | LOCAL ONLY | full suite pass | — | offensive edge types rejected at enum layer |
 | 5 | Reconnaissance Capability Foundation | `c9c2e67` | LOCAL ONLY | full suite pass (438 passed, 3 skipped at this phase) | — | mock adapters only; no network I/O |
+| 6 | Web & API Security | `6705276` | LOCAL ONLY | full suite pass (192 passed, 2 skipped) | — | mock transport only; GET-only; redaction at boundary |
 
-Latest committed phase at the time of writing: **Phase 5** (`c9c2e67`).
+Latest committed phase at the time of writing: **Phase 6** (`6705276`).
 
 ---
 
@@ -315,3 +316,31 @@ See `docs/reconnaissance.md` for the full reconnaissance architecture.
 > **Scope note:** reconnaissance describes the environment (mock tool data, metadata only)
 > and produces evidence-backed facts. It never exploits, never touches credentials, and
 > never uses network I/O. Attack path reasoning remains out of scope.
+
+---
+
+## Phase 6 — Web & API Security
+
+**Notebook:** 
+
+**Validation type:** LOCAL ONLY
+
+**Test result:** full suite pass (192 passed, 2 skipped)
+
+**Colab result:** —
+
+**Notes / limitations:** mock transport only; GET-only request/response behavior; redaction/hashing at boundary; failure-aware statuses (RATE_LIMITED, REQUEST_FAILED, NO_EVIDENCE, LIMITED, PARTIAL, SUCCESS); confidence policy enforced; no attack-graph relationship types; APPLICATION entities named by hostname (canonical).
+
+### What Phase 6 Validates
+
+- Ten typed web/api security capabilities registered and executable
+- Full pipeline: capability → mock transport → normalization → evidence (artifact + DERIVED_FROM) → World Model → memory
+- Authorization enforced before transport execution
+- Unknown capabilities rejected; out-of-scope targets rejected
+- Redaction: cookie values, Authorization headers, OpenAPI passwords hashed
+- World Model: APPLICATION by hostname, ENDPOINT/API by URL, CONTAINS relationships, analysis assertions bound to correct entity
+- Failure states: NO_EVIDENCE, RATE_LIMITED, REQUEST_FAILED, LIMITED all produce correct statuses
+- Confidence policy: PASSIVE→LOW, direct ACTIVE→HIGH, document kinds→MEDIUM
+- No network dependencies or banned imports in 
+
+See  for the full architecture documentation.
