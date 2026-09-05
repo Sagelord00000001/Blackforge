@@ -1,0 +1,101 @@
+# Single source of truth for Blackforge project status.
+#
+# Rules followed by this file:
+#   - A phase is COMPLETE only after implementation is done, its tests pass, and its
+#     validation notebook has been executed successfully (locally and/or on Colab).
+#   - Colab execution is only ever recorded as GOOGLE COLAB when it actually happened.
+#     Phases 2-5 have only been validated locally so far.
+#   - This file is updated by the post-phase doc-sync step, never by code.
+
+project: AELIONIX BLACKFORGE
+repository: "https://github.com/Sagelord00000001/Blackforge"
+license: MIT
+
+current_phase: 5            # phase being developed / most recently completed during the last cycle
+latest_completed_phase: 5
+next_phase: 6               # Web & API Security
+
+# Latest commit id of the most recently completed phase (never invented; taken from git history).
+latest_phase_commit: c9c2e67
+
+last_known_validation:
+  tests_passed: 438
+  tests_skipped: 3
+  tests_failed: 0
+  full_suite_command: "python -m pytest tests/ -q"
+  local_notebook_result: PASS    # phase-5 notebook executed locally via nbconvert
+  google_colab_result: null      # no real Google Colab execution recorded for Phase 5 yet
+
+phases:
+  0:
+    name: Foundation & Rules
+    status: COMPLETE
+    commit: 4587ebe
+    validation: local
+  1:
+    name: Runtime LLM Infrastructure
+    status: COMPLETE
+    commit: 1e54de4
+    validation: local + GOOGLE COLAB (CPU, Python 3.13)
+  2:
+    name: Persistent Memory
+    status: COMPLETE
+    commit: 43d63b6
+    validation: local
+  3:
+    name: Evidence & Memory Integration
+    status: COMPLETE
+    commit: 9041d57
+    validation: local
+  4:
+    name: World Model Foundation
+    status: COMPLETE
+    commit: c2c7191
+    validation: local
+  5:
+    name: Reconnaissance Capability Foundation
+    status: COMPLETE
+    commit: c9c2e67
+    validation: local
+  6:
+    name: Web & API Security
+    status: NEXT
+  7:
+    name: Authentication & Authorization
+    status: PLANNED
+  8:
+    name: Business Logic & Attack Paths
+    status: PLANNED
+  9:
+    name: Network & Infrastructure
+    status: PLANNED
+  10:
+    name: Identity / Active Directory
+    status: PLANNED
+  11:
+    name: Cloud Security
+    status: PLANNED
+  12:
+    name: Containers / Kubernetes
+    status: PLANNED
+  13:
+    name: Source & Runtime Correlation
+    status: PLANNED
+  14:
+    name: Attack Graph & Autonomous Planner
+    status: PLANNED
+  15:
+    name: Multi-Agent Architecture
+    status: PLANNED
+  16:
+    name: Adversary Emulation
+    status: PLANNED
+  17:
+    name: Evaluation & Benchmarking
+    status: PLANNED
+  18:
+    name: Experience / Learning
+    status: PLANNED
+  19:
+    name: Production Hardening
+    status: PLANNED

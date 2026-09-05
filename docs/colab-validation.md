@@ -1,4 +1,26 @@
-# Phase 1 Colab Validation
+# Blackforge Phase Validation Record
+
+Chronological record of per-phase validation. **Validation type matters:**
+- **GOOGLE COLAB** — executed on a real Google Colab runtime (recorded results below).
+- **LOCAL ONLY** — the same notebook cells executed on the development machine (inside
+  the project's venv via a local nbconvert runner, with cells that require a repo clone,
+  install, and Colab-only paths skipped). A local PASS proves the notebook logic and the
+  package; it is **not** a Google Colab execution and is never labeled as one.
+
+| Phase | Name | Commit | Validation type | Test result | Colab result | Notes / limitations |
+|---|---|---|---|---|---|---|
+| 0 | Foundation & Rules | `4587ebe` | LOCAL ONLY | foundation tests pass | — | validated by `notebooks/blackforge_bootstrap.ipynb` |
+| 1 | Runtime LLM Infrastructure | `1e54de4` | LOCAL + GOOGLE COLAB (free-tier CPU, Python 3.13, Sept 2026) | 177 tests pass | PASS — real HF inference (`Qwen/Qwen2.5-0.5B`, float32) | hardware-aware model selection; see Phase 1 section below |
+| 2 | Persistent Memory | `43d63b6` | LOCAL ONLY | full suite pass | — | lightweight notebook; no torch required |
+| 3 | Evidence & Memory Integration | `9041d57` | LOCAL ONLY | full suite pass | — | no-fake-authority semantics corrected vs Phase 2 notebook |
+| 4 | World Model Foundation | `c2c7191` | LOCAL ONLY | full suite pass | — | offensive edge types rejected at enum layer |
+| 5 | Reconnaissance Capability Foundation | `c9c2e67` | LOCAL ONLY | full suite pass (438 passed, 3 skipped at this phase) | — | mock adapters only; no network I/O |
+
+Latest committed phase at the time of writing: **Phase 5** (`c9c2e67`).
+
+---
+
+## Phase 1 Colab Validation
 
 ## How to Open
 
@@ -259,24 +281,34 @@ on CPU runtimes.
 | Mission isolation | A second mission's run is fully disjoint in evidence and world state |
 | Restart persistence | Fresh SQLite connections see the same evidence and world facts |
 
-Expected final output:
+Expected final output (standard checklist structure shared with the Phase 1 notebook):
 
 ```
-PHASE 5 VALIDATION SUMMARY
 ============================================================
-  [PASS] repository_integrity
-  [PASS] phase5_modules
-  [PASS] imports
-  [PASS] bootstrap_recon_ready
-  [PASS] no_generic_executor
-  [PASS] capability_surface
-  ...
-  [PASS] restart_persistence
+BLACKFORGE PHASE 5 VALIDATION
 ============================================================
-RESULT: 13 passed, 0 failed
-
-BLACKFORGE PHASE 5 VALIDATION: SUCCESS
+Repository                    PASS
+Python                        PASS
+Hardware                      PASS
+Installation                  PASS
+Imports                       PASS
+Automated tests               PASS
+Bootstrap                     PASS
+Phase-specific tests          PASS
+Security checks               PASS
+============================================================
+OVERALL RESULT: PASS
+============================================================
 ```
+
+`Phase-specific tests` aggregates the 13 reconnaissance checks (repository integrity,
+phase-5 modules, imports, bootstrap `recon_ready`, no generic executor, capability
+surface, pipeline evidence, world materialization, idempotent reruns, scope
+authorization, capability authorization, mission isolation, restart persistence).
+`Security checks` covers scope and capability authorization denial *before* tool execution.
+
+Current Phase 5 notebook result: **executed locally, PASS.** No Google Colab execution
+has been recorded for Phase 5 yet.
 
 See `docs/reconnaissance.md` for the full reconnaissance architecture.
 
