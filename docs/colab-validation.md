@@ -115,3 +115,36 @@ Real HuggingFace inference ran end-to-end on CPU with `Qwen/Qwen2.5-0.5B-Instruc
 | Invalid PyPI classifier `Intended Audience :: Information Technology Industry` | Removed — broke metadata generation for editable installs |
 | OOM kernel kill on CPU (3B float32) | Hardware-aware model selection: 0.5B on CPU, 3B float16 on GPU |
 | `verify_inference()` missing `provider` key | Added `"provider": "huggingface"` to the diagnostics dict |
+
+## Phase 2 Validation Notebook
+
+`notebooks/blackforge_phase2_colab.ipynb` validates the Phase 2 persistent
+memory foundation. It installs only `blackforge[dev]` (no torch/transformers,
+so it is lightweight and OOM-free on CPU runtimes) and checks:
+
+| Stage | What it checks |
+|---|---|
+| Import health | All memory/evidence/bootstrap modules load cleanly |
+| Automated tests | Full `pytest -q` suite |
+| Bootstrap | `app.healthy()` and `memory_ready` health check |
+| Restart persistence | Write → close → reopen → retrieve on a fresh SQLite connection |
+| Deduplication | Idempotent writes return the same ID, no duplicate rows |
+| Logical versioning | Content change supersedes v1, creates v2 atomically |
+| Structured search | Mission/session/status/lifecycle/source/confidence/tags/keyword filters |
+| Transaction atomicity | Mid-transaction failure rolls back everything |
+| Evidence integration | Memory references evidence by ID; hashes match the EvidenceStore |
+| In-memory parity | `in_memory` backend behaves identically |
+
+Expected final output:
+
+```
+============================================================
+BLACKFORGE PHASE 2 VALIDATION (PERSISTENT MEMORY)
+============================================================
+Repository                   PASS
+...
+OVERALL RESULT: PASS
+============================================================
+```
+
+See `docs/memory.md` for the full memory architecture.

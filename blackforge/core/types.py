@@ -70,6 +70,14 @@ class AssetID(_IDStr):
     _prefix = "asset"
 
 
+class MemoryID(_IDStr):
+    _prefix = "mem"
+
+
+class SessionID(_IDStr):
+    _prefix = "sess"
+
+
 class MissionStatus(str, Enum):
     CREATED = "created"
     READY = "ready"

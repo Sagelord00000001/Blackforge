@@ -1,19 +1,43 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from blackforge.authorization import AuthorizationBoundary
 from blackforge.capabilities.registry import CapabilityRegistry
 from blackforge.core.config import BlackforgeConfig, load_config
 from blackforge.core.errors import ConfigurationError
 from blackforge.core.logging import get_logger, setup_logging
 from blackforge.evidence.store import EvidenceStore
-from blackforge.intelligence.llm.base import LLMProvider
 from blackforge.intelligence.llm.mock import MockLLMProvider
 from blackforge.intelligence.routing.router import ModelRouter
-from blackforge.memory.base import MemoryBackend
-from blackforge.memory.models import InMemoryBackend
+from blackforge.memory.manager import MemoryManager
+from blackforge.memory.repository import InMemoryRepository, SQLiteMemoryRepository
 from blackforge.mission.manager import MissionManager
 
+if TYPE_CHECKING:
+    from blackforge.intelligence.llm.base import LLMProvider
+    from blackforge.memory.base import MemoryBackend
+
 log = get_logger("runtime.bootstrap")
+
+
+def _resolve_memory(
+    config: BlackforgeConfig,
+    backend: MemoryBackend | None = None,
+) -> MemoryManager:
+    """Resolve the memory facade from configuration.
+
+    An explicitly provided backend is wrapped in a :class:`MemoryManager`.
+    Otherwise the ``memory.backend`` setting selects SQLite (persistent) or
+    an in-memory repository (testing/discardable).
+    """
+    if isinstance(backend, MemoryManager):
+        return backend
+    if backend is not None:
+        return MemoryManager(repository=backend)
+    if config.memory.backend == "in_memory":
+        return MemoryManager(repository=InMemoryRepository())
+    return MemoryManager(repository=SQLiteMemoryRepository(config.memory.db_path))
 
 
 def _resolve_provider(config: BlackforgeConfig) -> LLMProvider:
@@ -60,7 +84,7 @@ class BlackforgeApp:
         self.evidence_store = EvidenceStore()
         self.authorization = AuthorizationBoundary(mode=self.config.authorization.mode)
 
-        self.memory: MemoryBackend = memory_backend or InMemoryBackend()
+        self.memory: MemoryManager = _resolve_memory(self.config, memory_backend)
         self.llm: LLMProvider = llm_provider or _resolve_provider(self.config)
         self.model_router = ModelRouter(default_provider=self.llm)
 
@@ -80,7 +104,7 @@ class BlackforgeApp:
             "logging_initialized": True,
             "mission_manager_ready": self.mission_manager is not None,
             "capability_registry_ready": len(self.capability_registry.list_capabilities()) > 0,
-            "memory_ready": self.memory is not None,
+            "memory_ready": self.memory.health_check(),
             "llm_ready": self.llm.health_check(),
             "authorization_ready": self.authorization is not None,
             "evidence_store_ready": self.evidence_store is not None,

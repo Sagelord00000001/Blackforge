@@ -1,5 +1,5 @@
-from blackforge.core.config import BlackforgeConfig
 from blackforge.intelligence.llm.mock import MockLLMProvider
+from blackforge.memory.manager import MemoryManager
 from blackforge.memory.models import InMemoryBackend
 from blackforge.runtime.bootstrap import BlackforgeApp, bootstrap
 
@@ -29,7 +29,8 @@ class TestBootstrap:
         memory = InMemoryBackend()
         llm = MockLLMProvider("custom")
         app = BlackforgeApp(memory_backend=memory, llm_provider=llm)
-        assert app.memory is memory
+        assert isinstance(app.memory, MemoryManager)
+        assert app.memory.repository is memory
         assert app.llm is llm
         assert app.healthy()
 
