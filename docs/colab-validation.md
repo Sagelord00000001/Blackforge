@@ -16,8 +16,9 @@ Chronological record of per-phase validation. **Validation type matters:**
 | 4 | World Model Foundation | `c2c7191` | LOCAL ONLY | full suite pass | — | offensive edge types rejected at enum layer |
 | 5 | Reconnaissance Capability Foundation | `c9c2e67` | LOCAL ONLY | full suite pass (438 passed, 3 skipped at this phase) | — | mock adapters only; no network I/O |
 | 6 | Web & API Security | `6705276` | LOCAL ONLY | full suite pass (192 passed, 2 skipped) | — | mock transport only; GET-only; redaction at boundary |
+| 7 | Authentication & Authorization | `20bea56` | LOCAL ONLY | full suite pass (681 passed, 5 skipped at this phase) | — | observation-only; redaction at boundary (literal `REDACTED`/digests); explicit test identities required |
 
-Latest committed phase at the time of writing: **Phase 6** (`6705276`).
+Latest committed phase at the time of writing: **Phase 7** (`20bea56`).
 
 ---
 
@@ -321,7 +322,7 @@ See `docs/reconnaissance.md` for the full reconnaissance architecture.
 
 ## Phase 6 — Web & API Security
 
-**Notebook:** 
+**Notebook:** `notebooks/blackforge_phase6_colab.ipynb`
 
 **Validation type:** LOCAL ONLY
 
@@ -341,6 +342,37 @@ See `docs/reconnaissance.md` for the full reconnaissance architecture.
 - World Model: APPLICATION by hostname, ENDPOINT/API by URL, CONTAINS relationships, analysis assertions bound to correct entity
 - Failure states: NO_EVIDENCE, RATE_LIMITED, REQUEST_FAILED, LIMITED all produce correct statuses
 - Confidence policy: PASSIVE→LOW, direct ACTIVE→HIGH, document kinds→MEDIUM
-- No network dependencies or banned imports in 
+- No network dependencies or banned imports in blackforge/webapi
 
-See  for the full architecture documentation.
+See `docs/web-api-security.md` for the full architecture documentation.
+
+---
+
+## Phase 7 — Authentication & Authorization
+
+**Notebook:** `notebooks/blackforge_phase7_colab.ipynb`
+
+**Validation type:** LOCAL ONLY
+
+**Test result:** full suite pass (681 passed, 5 skipped at this phase)
+
+**Colab result:** —
+
+**Notes / limitations:** observation-only (no credential guessing/forgery/escalation/brute force); redaction at boundary (literal `REDACTED` marker + one-way digests); explicit authorized test identities required for access-validation capabilities; strict authorization before transport execution; failure-aware statuses (NO_EVIDENCE, RATE_LIMITED, REQUEST_FAILED, LIMITED, PARTIAL, SUCCESS); confidence policy enforced; ENDPOINT REQUIRES AUTHENTICATION + IDENTITY→ROLE→PERMISSION→RESOURCE chain; no attack-graph relationship types.
+
+### What Phase 7 Validates
+
+- Eleven typed auth/authorization capabilities registered and executable
+- Full pipeline: capability → mock transport → normalization → evidence (artifact + DERIVED_FROM) → World Model → memory
+- Authorization enforced before transport execution; unknown capabilities rejected
+- `auth_ready` bootstrap flag equal to 11 typed capabilities
+- Redaction: session/token values as sha-256 digests; every `credential_value` literal `REDACTED`; no plaintext in raw output or evidence
+- Explicit `test_identities` required for `auth.resource_access_observation` / `auth.access_control_comparison`; missing identities rejected
+- World Model: APPLICATION by hostname, AUTHENTICATION by scheme (namespaced), ENDPOINT REQUIRES AUTHENTICATION, IDENTITY HAS_ROLE ROLE HAS_PERMISSION PERMISSION APPLIES_TO RESOURCE
+- Assertions bound correctly: analysis → APPLICATION (OBSERVED), exercised access → IDENTITY (VALIDATED)
+- No attack-graph relationship types (only has_role/has_permission/applies_to/requires/contains/runs)
+- Failure states: NO_EVIDENCE, RATE_LIMITED, REQUEST_FAILED, LIMITED all produce correct statuses
+- Confidence policy: PASSIVE→LOW, direct ACTIVE→HIGH, derived roles/permissions→MEDIUM, validated access→HIGH
+- Mission isolation and restart persistence across fresh SQLite connections
+
+See `docs/authentication-authorization.md` for the full architecture documentation.

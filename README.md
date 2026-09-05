@@ -1,11 +1,11 @@
 # AELIONIX BLACKFORGE
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Sagelord00000001/Blackforge/blob/master/notebooks/blackforge_phase6_colab.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Sagelord00000001/Blackforge/blob/master/notebooks/blackforge_phase7_colab.ipynb)
 
 Blackforge is a modular, provider-agnostic **evidence-driven security assessment platform**. It separates concerns into clear architectural layers — configuration, authorization, mission/scope management, evidence handling, capability orchestration, LLM abstraction, persistent memory, and a world model of known facts. It is **pre-alpha** and safe-by-default: mock mode is the default, nothing attacks anything by default, and every analysis path is gated by a programmatic authorization boundary.
 
-> Latest completed phase: **Phase 6 — Web & API Security** (`6705276`).
-> Next phase: **Phase 7 — Authentication & Authorization**.
+> Latest completed phase: **Phase 7 — Authentication & Authorization** (`20bea56`).
+> Next phase: **Phase 8 — Business Logic & Attack Paths**.
 
 ---
 
@@ -20,7 +20,7 @@ Blackforge is a modular, provider-agnostic **evidence-driven security assessment
 | 4 | World Model Foundation | ✅ COMPLETE | `c2c7191` |
 | 5 | Reconnaissance Capability Foundation | ✅ COMPLETE | `c9c2e67` |
 | 6 | Web & API Security | ✅ COMPLETE | `6705276` |
-| 7 | Authentication & Authorization | 🔲 PLANNED | — |
+| 7 | Authentication & Authorization | ✅ COMPLETE | `20bea56` |
 | 8 | Business Logic & Attack Paths | 🔲 PLANNED | — |
 | 9 | Network & Infrastructure | 🔲 PLANNED | — |
 | 10 | Identity / Active Directory | 🔲 PLANNED | — |
@@ -148,13 +148,13 @@ tests/                    # Test suite (current: 438 passed, 3 skipped)
 
 | Item | Result |
 |---|---|
-| Latest completed-phase commit | `c9c2e67` (Phase 5) |
-| Full test suite | **438 passed, 3 skipped, 0 failed** (`python -m pytest tests/ -q`) |
-| Bootstrap | `app.healthy()` + `memory_ready`, `evidence_store_ready`, `evidence_memory_link_ready`, `world_model_ready`, `recon_ready` all PASS |
-| Phase notebooks | Phase 1–5 notebooks executed; Phase 5 last run locally: **PASS** (all checks green, disposable DBs self-cleaned) |
-| Google Colab | Phase 1 executed on a real free-tier CPU runtime (PASS — recorded in `docs/colab-validation.md`). **Phases 2–5 have been validated locally only; no Colab execution is claimed for them.** |
-| Ruff | Clean on `blackforge/recon/`, `blackforge/runtime/bootstrap.py`, and `tests/test_recon_phase5.py`; remaining findings are pre-existing in untouched legacy files/notebooks |
-| Security review | No execution surface, no secrets, no network I/O; authorization enforced before tool execution |
+| Latest completed-phase commit | `20bea56` (Phase 7) |
+| Full test suite | **681 passed, 5 skipped, 0 failed** (`python -m pytest tests/ -q`) |
+| Bootstrap | `app.healthy()` + `memory_ready`, `evidence_store_ready`, `evidence_memory_link_ready`, `world_model_ready`, `recon_ready`, `webapi_ready`, `auth_ready` all PASS |
+| Phase notebooks | Phase 1–7 notebooks executed; Phase 7 last run locally: **PASS** (all checks green, disposable DBs self-cleaned) |
+| Google Colab | Phase 1 executed on a real free-tier CPU runtime (PASS — recorded in `docs/colab-validation.md`). **Phases 2–7 have been validated locally only; no Colab execution is claimed for them.** |
+| Ruff | Clean on `blackforge/auth/`, `blackforge/webapi/`, `blackforge/recon/`, `blackforge/runtime/bootstrap.py`, and the phase-5/6/7 test files; remaining findings are pre-existing in untouched legacy files/notebooks |
+| Security review | No execution surface, no secrets, no network I/O; redaction at the boundary (literal `REDACTED` / one-way digests); authorization enforced before tool execution; explicit test identities required for access validation |
 
 ## Roadmap
 
@@ -165,7 +165,7 @@ tests/                    # Test suite (current: 438 passed, 3 skipped)
 - **Phase 4** — World Model Foundation ✅
 - **Phase 5** — Reconnaissance Capability Foundation ✅
 - **Phase 6** — Web & API Security ✅ COMPLETE
-- **Phase 7** — Authentication & Authorization 🔲
+- **Phase 7** — Authentication & Authorization ✅ COMPLETE
 - **Phase 8** — Business Logic & Attack Paths 🔲
 - **Phase 9** — Network & Infrastructure 🔲
 - **Phase 10** — Identity / Active Directory 🔲
