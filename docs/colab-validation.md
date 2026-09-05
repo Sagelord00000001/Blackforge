@@ -189,3 +189,49 @@ See `docs/evidence.md` for the full evidence architecture.
 > cell creates `VALIDATED` evidence directly. Phase 3 intentionally forbids
 > that (no fake authority). The Phase 2 notebook is kept as-is for historical
 > record; the Phase 3 notebook demonstrates the corrected workflow.
+
+## Phase 4 Validation Notebook
+
+`notebooks/blackforge_phase4_colab.ipynb` validates the Phase 4
+**World Model Foundation** subsystem. Like Phase 2/3 it installs only
+`blackforge[dev]` (no torch/transformers), so it is lightweight and OOM-free
+on CPU runtimes.
+
+| Stage | What it checks |
+|---|---|
+| Import health | All world model modules load cleanly |
+| Automated tests | Full `pytest -q` suite (world model included) |
+| Bootstrap | `app.healthy()` + new `world_model_ready` flag |
+| Identity & dedup | Deterministic canonical keys; same identity corroborates to one record; similar names never merged; namespaces scope identity |
+| No fake authority | `OBSERVED` without evidence rejected; materializer floors status at `HYPOTHESIZED`; only evidence raises it |
+| Direction rules | Directed `A→B` ≠ `B→A`; symmetric `CONNECTS_TO` dedups order-insensitively; self-loops and cross-mission edges rejected |
+| Provenance | Evidence linked to relationships/entities, merged on corroboration, queryable in both directions |
+| Confidence | Corroboration raises to maximum, never lowers; repetition alone never increases |
+| Contradiction | Weaker claim → assertion, authoritative record untouched; inferred disagreement never overwrites |
+| Supersession | Authoritative change supersedes, version + `supersedes` + full history preserved |
+| Mission/session isolation | Same identity in another mission is a distinct record; session context narrows reads |
+| Neighborhood | Bounded, deterministic, depth ≤ 2 — no pathfinding |
+| Restart persistence | Entities, relationships, assertions and evidence links survive close/reopen on fresh SQLite connections |
+| Rule integrity | Rule failures leave no partial state; health probes are self-cleaning |
+
+Expected final output:
+
+```
+PHASE 4 VALIDATION SUMMARY
+============================================================
+  [PASS] repository
+  [PASS] phase4_modules
+  ...
+  [PASS] restart_persistence
+============================================================
+RESULT: 15 passed, 0 failed
+
+PHASE 4 VALIDATION: OVERALL PASS
+```
+
+See `docs/world-model.md` for the full world model architecture.
+
+> **Scope note:** the world model stores *what is known and how it is known*.
+> Offensive edge types (`LEADS_TO`, `ENABLES`, `EXPLOITS`, `CAN_COMPROMISE`,
+> privilege-escalation paths) are rejected at the enum layer. An Attack Graph
+> layer is explicitly out of scope for Phase 4.

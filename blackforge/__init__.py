@@ -11,6 +11,8 @@ from blackforge.core.errors import (
     ScopeError,
     TaskError,
     ValidationError,
+    WorldError,
+    WorldRuleError,
 )
 from blackforge.core.logging import get_logger, setup_logging
 

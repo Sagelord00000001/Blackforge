@@ -66,6 +66,18 @@ class RelationshipID(_IDStr):
     _prefix = "rel"
 
 
+class WorldEntityID(_IDStr):
+    _prefix = "went"
+
+
+class WorldRelationshipID(_IDStr):
+    _prefix = "wrel"
+
+
+class WorldAssertionID(_IDStr):
+    _prefix = "wast"
+
+
 class CapabilityID(_IDStr):
     _prefix = "cap"
 

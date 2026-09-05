@@ -86,5 +86,18 @@ class MemoryError(BlackforgeError):
     """Raised on memory system failures."""
 
 
+class WorldError(BlackforgeError):
+    """Raised on world model failures."""
+
+
+class WorldRuleError(WorldError):
+    """Raised when a world model operation violates an identity/rule boundary.
+
+    For example an unnormalizable canonical name, a relationship whose
+    endpoints do not exist or belong to another mission, or an entity marked
+    ``VALIDATED`` without any supporting evidence.
+    """
+
+
 class ValidationError(BlackforgeError):
     """Raised when input validation fails."""

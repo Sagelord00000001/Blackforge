@@ -46,6 +46,7 @@ class TestBootstrap:
         assert checks["llm_ready"]
         assert checks["authorization_ready"]
         assert checks["evidence_store_ready"]
+        assert checks["world_model_ready"]
         assert checks["model_router_ready"]
 
     def test_mission_creation_through_app(self) -> None:
