@@ -29,6 +29,7 @@ class EntityType(str, Enum):
     SERVICE = "service"
     APPLICATION = "application"
     ENDPOINT = "endpoint"
+    API = "api"
     IDENTITY = "identity"
     ROLE = "role"
     TECHNOLOGY = "technology"

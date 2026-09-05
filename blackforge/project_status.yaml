@@ -11,19 +11,19 @@ project: AELIONIX BLACKFORGE
 repository: "https://github.com/Sagelord00000001/Blackforge"
 license: MIT
 
-current_phase: 5            # phase being developed / most recently completed during the last cycle
-latest_completed_phase: 5
-next_phase: 6               # Web & API Security
+current_phase: 6            # phase being developed / most recently completed during the last cycle
+latest_completed_phase: 6
+next_phase: 7               # Authentication & Authorization
 
 # Latest commit id of the most recently completed phase (never invented; taken from git history).
-latest_phase_commit: c9c2e67
+latest_phase_commit: 6705276
 
 last_known_validation:
-  tests_passed: 438
+  tests_passed: 437
   tests_skipped: 3
   tests_failed: 0
   full_suite_command: "python -m pytest tests/ -q"
-  local_notebook_result: PASS    # phase-5 notebook executed locally via nbconvert
+  local_notebook_result: PASS    # phase-5 and phase-6 notebooks executed locally
   google_colab_result: null      # no real Google Colab execution recorded for Phase 5 yet
 
 phases:
@@ -59,7 +59,9 @@ phases:
     validation: local
   6:
     name: Web & API Security
-    status: NEXT
+    status: COMPLETE
+    commit: 6705276
+    validation: local
   7:
     name: Authentication & Authorization
     status: PLANNED

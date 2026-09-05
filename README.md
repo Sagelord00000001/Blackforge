@@ -1,11 +1,11 @@
 # AELIONIX BLACKFORGE
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Sagelord00000001/Blackforge/blob/master/notebooks/blackforge_phase5_colab.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Sagelord00000001/Blackforge/blob/master/notebooks/blackforge_phase6_colab.ipynb)
 
 Blackforge is a modular, provider-agnostic **evidence-driven security assessment platform**. It separates concerns into clear architectural layers — configuration, authorization, mission/scope management, evidence handling, capability orchestration, LLM abstraction, persistent memory, and a world model of known facts. It is **pre-alpha** and safe-by-default: mock mode is the default, nothing attacks anything by default, and every analysis path is gated by a programmatic authorization boundary.
 
-> Latest completed phase: **Phase 5 — Reconnaissance Capability Foundation** (`c9c2e67`).
-> Next phase: **Phase 6 — Web & API Security**.
+> Latest completed phase: **Phase 6 — Web & API Security** (`6705276`).
+> Next phase: **Phase 7 — Authentication & Authorization**.
 
 ---
 
@@ -19,7 +19,7 @@ Blackforge is a modular, provider-agnostic **evidence-driven security assessment
 | 3 | Evidence & Memory Integration | ✅ COMPLETE | `9041d57` |
 | 4 | World Model Foundation | ✅ COMPLETE | `c2c7191` |
 | 5 | Reconnaissance Capability Foundation | ✅ COMPLETE | `c9c2e67` |
-| 6 | Web & API Security | ⏳ NEXT | — |
+| 6 | Web & API Security | ✅ COMPLETE | `6705276` |
 | 7 | Authentication & Authorization | 🔲 PLANNED | — |
 | 8 | Business Logic & Attack Paths | 🔲 PLANNED | — |
 | 9 | Network & Infrastructure | 🔲 PLANNED | — |
@@ -47,6 +47,7 @@ In plain language, with the currently implemented foundation:
 - **Record evidence rigorously** — an evidence store with provenance (observed / inferred / hypothesized / validated), a status lifecycle, typed relationships, confidence, contradiction, supersession, and a *no-fake-authority* rule.
 - **Maintain a world model** — typed entities, relationships, and assertions derived from evidence, with mission isolation, provenance tracking, and bounded neighborhood queries.
 - **Run reconnaissance** — six typed capabilities (host discovery, service enumeration, technology identification, DNS, HTTP metadata, TLS metadata) that produce normalized observations, attach them to evidence artifacts, materialize them into the world model, and do it all **idempotently** and **deterministically**.
+- **Run web/api security assessment** — ten typed capabilities (application discovery, endpoint enumeration, API surface discovery, security-header analysis, cookie analysis, CORS analysis, authentication-surface observation, OpenAPI review, GraphQL discovery, request/response observation) that produce normalized observations, attach them to evidence artifacts, materialize them into the world model, and do it all **idempotently** and **deterministically** with GET-only behavior and redaction at the boundary.
 
 **What it cannot do yet (by design):**
 
@@ -163,7 +164,7 @@ tests/                    # Test suite (current: 438 passed, 3 skipped)
 - **Phase 3** — Evidence & Memory Integration ✅
 - **Phase 4** — World Model Foundation ✅
 - **Phase 5** — Reconnaissance Capability Foundation ✅
-- **Phase 6** — Web & API Security ⏳ next
+- **Phase 6** — Web & API Security ✅ COMPLETE
 - **Phase 7** — Authentication & Authorization 🔲
 - **Phase 8** — Business Logic & Attack Paths 🔲
 - **Phase 9** — Network & Infrastructure 🔲
