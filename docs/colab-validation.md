@@ -17,7 +17,7 @@ The notebook performs a sequential, deterministic validation of the entire Phase
 | Stage | What it checks |
 |---|---|
 | Repository | Clones/updates repo, verifies commit history |
-| Dependencies | Installs `blackforge[dev,llm,colab]` |
+| Dependencies | Installs `blackforge[dev,llm]` (plus `hatchling` build backend) |
 | Imports | All 24 Blackforge backend modules load cleanly |
 | Tests | Full `pytest -q` suite (177 tests) |
 | Bootstrap | `BlackforgeApp.healthy()` and `verify()` pass |
@@ -63,17 +63,55 @@ OVERALL RESULT: PASS
 
 ## GPU Recommendations
 
-| GPU | VRAM | Recommended Model | Notes |
+The notebook auto-detects hardware and selects the model accordingly:
+
+| Runtime | Model | Dtype | Notes |
 |---|---|---|---|
-| T4 | 15 GB | Qwen/Qwen2.5-3B-Instruct | Default, works well |
-| L4 | 24 GB | Qwen/Qwen3-8B | Better quality |
-| A100 | 40/80 GB | Qwen/Qwen3-8B | Fast inference |
-| No GPU | — | Qwen/Qwen2.5-3B-Instruct | CPU mode, slow |
+| GPU (T4+) | Qwen/Qwen2.5-3B-Instruct | float16 | Default, works well |
+| GPU (L4/A100) | Qwen/Qwen3-8B | float16 | Better quality (manual override) |
+| No GPU (CPU) | Qwen/Qwen2.5-0.5B-Instruct | float32 | Auto-fallback, ~1 GB — fits free-tier RAM |
+
+A 3B model in float32 (~6.7 GB) on a CPU-only runtime can OOM-kill the kernel; the notebook avoids this by picking the 0.5B model when no CUDA is detected.
 
 ## Important Notes
 
-1. **First run downloads the model.** Qwen2.5-3B-Instruct is approximately 6 GB. Subsequent runs use the cached model.
+1. **First run downloads the model.** Qwen2.5-3B-Instruct is approximately 6 GB (GPU runtimes). CPU runtimes download Qwen2.5-0.5B-Instruct (~1 GB). Subsequent runs use the cached model.
 2. **No offensive security actions.** The notebook runs a harmless validation prompt only.
 3. **No secrets required.** The notebook uses local models only — no API keys needed.
 4. **Rerunnable.** Safe to re-run on the same Colab instance. Cached model and installed packages are reused.
-5. **Colab execution: NOT RUN** — the notebook is created and syntax-validated locally. Actual Colab execution has not been performed.
+5. **CPU runtimes are slow but work.** Expect real inference to take several seconds on CPU vs sub-second on a T4.
+6. **Avoid upgrading Colab's kernel packages.** The `colab` extra pulls in `ipython`/`jupyterlab`/`notebook`, which conflict with Google's pinned versions and can make the runtime unstable (stuck reconnects, random SIGKILL). If this happens, do **Runtime → Disconnect and delete runtime** and re-run from the top.
+
+## Colab Execution Result
+
+Executed on a free-tier **CPU** runtime (Python 3.13), September 2026:
+
+```
+============================================================
+BLACKFORGE PHASE 1 VALIDATION
+============================================================
+Repository                PASS
+Imports                   PASS
+Automated tests           PASS
+Bootstrap                 PASS
+Hardware                  PASS
+Real inference            PASS
+Structured output         PASS
+Tool-call flow            PASS
+Model router              PASS
+============================================================
+OVERALL RESULT: PASS
+============================================================
+```
+
+Real HuggingFace inference ran end-to-end on CPU with `Qwen/Qwen2.5-0.5B-Instruct` (float32), through the full provider abstraction chain.
+
+## Known Fixes Applied During Validation
+
+| Issue | Fix |
+|---|---|
+| Silent install failure (`--quiet \| tail -5` hid errors) | Install cell shows full `pip` output |
+| `hatchling` not present before editable install | Explicit `pip install hatchling` first |
+| Invalid PyPI classifier `Intended Audience :: Information Technology Industry` | Removed — broke metadata generation for editable installs |
+| OOM kernel kill on CPU (3B float32) | Hardware-aware model selection: 0.5B on CPU, 3B float16 on GPU |
+| `verify_inference()` missing `provider` key | Added `"provider": "huggingface"` to the diagnostics dict |
