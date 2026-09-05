@@ -137,3 +137,19 @@ class WebApiExecutionError(WebApiError):
 
 class WebApiTimeoutError(WebApiError):
     """Raised when a web/api capability exceeds its execution time budget."""
+
+
+class AuthError(BlackforgeError):
+    """Raised on authentication/authorization observation capability failures."""
+
+
+class AuthNormalizationError(AuthError):
+    """Raised when auth raw output cannot be parsed/validated."""
+
+
+class AuthExecutionError(AuthError):
+    """Raised when an auth capability fails to execute."""
+
+
+class AuthTimeoutError(AuthError):
+    """Raised when an auth capability exceeds its execution time budget."""

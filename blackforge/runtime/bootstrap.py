@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from blackforge.auth.engine import AuthEngine
 from blackforge.authorization import AuthorizationBoundary
 from blackforge.capabilities.registry import CapabilityRegistry
 from blackforge.core.config import BlackforgeConfig, load_config
@@ -163,6 +164,13 @@ class BlackforgeApp:
             memory_bridge=self.evidence_bridge,
             authorization=self.authorization,
         )
+        self.auth_engine = AuthEngine(
+            capability_registry=self.capability_registry,
+            evidence_store=self.evidence_store,
+            world_model=self.world_model,
+            memory_bridge=self.evidence_bridge,
+            authorization=self.authorization,
+        )
         self.llm: LLMProvider = llm_provider or _resolve_provider(self.config)
         self.model_router = ModelRouter(default_provider=self.llm)
 
@@ -197,6 +205,10 @@ class BlackforgeApp:
             "webapi_ready": (
                 self.webapi_engine is not None
                 and len(self.webapi_engine.capabilities) == 10
+            ),
+            "auth_ready": (
+                self.auth_engine is not None
+                and len(self.auth_engine.capabilities) == 11
             ),
             "model_router_ready": self.model_router is not None,
         }
