@@ -18,8 +18,9 @@ Chronological record of per-phase validation. **Validation type matters:**
 | 6 | Web & API Security | `6705276` | LOCAL ONLY | full suite pass (192 passed, 2 skipped) | — | mock transport only; GET-only; redaction at boundary |
 | 7 | Authentication & Authorization | `20bea56` | LOCAL ONLY | full suite pass (681 passed, 5 skipped at this phase) | — | observation-only; redaction at boundary (literal `REDACTED`/digests); explicit test identities required |
 | 8 | Business Logic & Attack Paths | `10c54f6` | LOCAL ONLY | full suite pass (765 passed, 5 skipped at this phase) | — | deterministic workflow/rule/role modeling; explicit test identities; fail-closed replay gating; VALIDATED only via validation; no attack-graph relationship types |
+| 9 | Network & Infrastructure | `5bf7d8b` | LOCAL ONLY | full suite pass (830 passed, 5 skipped at this phase) | — | deterministic mock topology (`internal.example`, reserved `192.0.2.0/24`); bounded fail-closed port probes; size-capped + credential-redacted banners; mode-aware evidence dedup (PASSIVE never inherits ACTIVE confidence); failure-aware statuses; no attack-graph relationship types |
 
-Latest committed phase at the time of writing: **Phase 8** (`10c54f6`).
+Latest committed phase at the time of writing: **Phase 9** (`5bf7d8b`).
 
 ---
 
@@ -408,3 +409,59 @@ See `docs/authentication-authorization.md` for the full architecture documentati
 - Mission isolation and restart persistence across fresh SQLite connections
 
 See `docs/business-logic.md` for the full architecture documentation.
+
+---
+
+## Phase 9 — Network & Infrastructure
+
+**Notebook:** `notebooks/blackforge_phase9_colab.ipynb`
+
+**Validation type:** LOCAL ONLY
+
+**Test result:** full suite pass (830 passed, 5 skipped at this phase)
+
+**Colab result:** —
+
+**Notes / limitations:** deterministic mock topology (`internal.example` on
+reserved TEST-NET-2 `192.0.2.0/24`) — no real network traffic, no free-form
+execution; bounded fail-closed port probes (explicit integer list in
+`1..65535`, oversized/empty/non-integer/out-of-range rejected before
+transport); size-capped + credential-redacted banners (literal `REDACTED`
+marker, never a hash); **mode-aware evidence dedup** — PASSIVE observations
+are LOW confidence and can never inherit an earlier ACTIVE record's HIGH
+confidence (mode is part of the stored evidence payload), while repeated
+same-mode runs still coalesce; failure-aware statuses (FILTERED, TIMEOUT,
+RATE_LIMITED, MALFORMED_RESPONSE, UNAUTHORIZED, OUT_OF_SCOPE, REQUEST_FAILED,
+NO_EVIDENCE); evidence rows DERIVED_FROM their run's artifact; hosts/ports/
+services/protocols/interfaces/infrastructure/applications materialized with
+has_port/runs_service/uses_protocol/has_interface/member_of/serves only — no
+attack-graph relationship types.
+
+### What Phase 9 Validates
+
+- Eleven typed network capabilities registered and executable; `network_ready`
+  bootstrap flag equal to 11 typed capabilities (registry total 50)
+- Full pipeline: capability → mock transport → normalization → evidence
+  (artifact + DERIVED_FROM) → World Model → memory
+- Authorization enforced before transport execution; unknown capabilities and
+  out-of-scope targets rejected
+- Bounded port validation: `ports=[22]*70000` rejected before transport;
+  non-list/empty/out-of-range ports rejected
+- Scope denial before transport; metadata-scan CIDR hosts observed only
+- Redaction: `access_token` / `api_key` / `credentials.api_password` values
+  never appear in banner raw output, artifact payloads, observation rows, or
+  world-model assertions
+- World Model: HOST named by IP namespaced by hostname; PORT/SERVICE/PROTOCOL
+  chain (has_port/runs_service/uses_protocol), HAS_INTERFACE from exposure,
+  MEMBER_OF into the INFRASTRUCTURE segment, SERVICE --SERVES--> APPLICATION;
+  banner/tls_cert/network_evidence assertions bound to the correct host
+- Confidence policy: PASSIVE→LOW, direct ACTIVE→HIGH, derived→MEDIUM; mode-aware
+  dedup verified (PASSIVE run after ACTIVE still LOW)
+- No attack-graph relationship types materialized (EXPLOITS/CAN_COMPROMISE/
+  LEADS_TO/ENABLES absent)
+- Failure states: FILTERED, TIMEOUT, RATE_LIMITED, MALFORMED_RESPONSE,
+  UNAUTHORIZED, OUT_OF_SCOPE, REQUEST_FAILED, NO_EVIDENCE all produce correct
+  statuses; quiet host → NO_EVIDENCE + warning
+- Mission isolation and restart persistence across fresh SQLite connections
+
+See `docs/network-infrastructure.md` for the full architecture documentation.
