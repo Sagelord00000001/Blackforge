@@ -16,7 +16,7 @@ latest_completed_phase: 11
 next_phase: 12              # Containers / Kubernetes
 
 # Latest commit id of the most recently completed phase (never invented; taken from git history).
-latest_phase_commit: playlist
+latest_phase_commit: 0c9571b
 
 last_known_validation:
   tests_passed: 946
@@ -85,7 +85,7 @@ phases:
   11:
     name: Cloud Security
     status: COMPLETE
-    commit: playlist
+    commit: 0c9571b
     validation: local
   12:
     name: Containers / Kubernetes

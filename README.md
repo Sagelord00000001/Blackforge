@@ -24,7 +24,7 @@ Blackforge is a modular, provider-agnostic **evidence-driven security assessment
 | 8 | Business Logic & Attack Paths | ✅ COMPLETE | `10c54f6` |
 | 9 | Network & Infrastructure | ✅ COMPLETE | `5bf7d8b` |
 | 10 | Identity / Active Directory | ✅ COMPLETE | `835f0de` |
-| 11 | Cloud Security | ✅ COMPLETE | `placeholder` |
+| 11 | Cloud Security | ✅ COMPLETE | `0c9571b` |
 | 12 | Containers / Kubernetes | 🔲 PLANNED | — |
 | 13 | Source & Runtime Correlation | 🔲 PLANNED | — |
 | 14 | Attack Graph & Autonomous Planner | 🔲 PLANNED | — |
@@ -214,7 +214,7 @@ tests/                    # Test suite (current: 946 passed, 5 skipped)
 
 | Item | Result |
 |---|---|
-| Latest completed-phase commit | `placeholder` (Phase 11) |
+| Latest completed-phase commit | `0c9571b` (Phase 11) |
 | Full test suite | **946 passed, 5 skipped, 0 failed** (`python -m pytest tests/ -q`) |
 | Bootstrap | `app.healthy()` + `memory_ready`, `evidence_store_ready`, `evidence_memory_link_ready`, `world_model_ready`, `recon_ready`, `webapi_ready`, `auth_ready`, `business_logic_ready`, `network_ready`, `identity_ready`, `cloud_ready` all PASS |
 | Phase notebooks | Phase 1–11 notebooks executed; Phase 11 last run locally: **PASS** (all 13 executed cells, disposable DBs self-cleaned) |
