@@ -1,11 +1,11 @@
 # AELIONIX BLACKFORGE
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Sagelord00000001/Blackforge/blob/master/notebooks/blackforge_phase9_colab.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Sagelord00000001/Blackforge/blob/master/notebooks/blackforge_phase10_colab.ipynb)
 
 Blackforge is a modular, provider-agnostic **evidence-driven security assessment platform**. It separates concerns into clear architectural layers — configuration, authorization, mission/scope management, evidence handling, capability orchestration, LLM abstraction, persistent memory, and a world model of known facts. It is **pre-alpha** and safe-by-default: mock mode is the default, nothing attacks anything by default, and every analysis path is gated by a programmatic authorization boundary.
 
-> Latest completed phase: **Phase 9 — Network & Infrastructure** (`5bf7d8b`).
-> Next phase: **Phase 10 — Identity / Active Directory**.
+> Latest completed phase: **Phase 10 — Identity / Active Directory** (`835f0de`).
+> Next phase: **Phase 11 — Cloud Security**.
 
 ---
 
@@ -23,7 +23,7 @@ Blackforge is a modular, provider-agnostic **evidence-driven security assessment
 | 7 | Authentication & Authorization | ✅ COMPLETE | `20bea56` |
 | 8 | Business Logic & Attack Paths | ✅ COMPLETE | `10c54f6` |
 | 9 | Network & Infrastructure | ✅ COMPLETE | `5bf7d8b` |
-| 10 | Identity / Active Directory | 🔲 PLANNED | — |
+| 10 | Identity / Active Directory | ✅ COMPLETE | `835f0de` |
 | 11 | Cloud Security | 🔲 PLANNED | — |
 | 12 | Containers / Kubernetes | 🔲 PLANNED | — |
 | 13 | Source & Runtime Correlation | 🔲 PLANNED | — |
@@ -50,6 +50,7 @@ In plain language, with the currently implemented foundation:
 - **Run web/api security assessment** — ten typed capabilities (application discovery, endpoint enumeration, API surface discovery, security-header analysis, cookie analysis, CORS analysis, authentication-surface observation, OpenAPI review, GraphQL discovery, request/response observation) that produce normalized observations, attach them to evidence artifacts, materialize them into the world model, and do it all **idempotently** and **deterministically** with GET-only behavior and redaction at the boundary.
 - **Run business logic assessment** — eleven typed capabilities (workflow discovery, workflow modeling, state-transition analysis, business-rule analysis, ownership analysis, role-boundary analysis, workflow-consistency analysis, controlled workflow replay, business-logic hypothesis, business-logic validation, workflow evidence collection) that produce typed observations about the shop's order lifecycle, attach them to evidence artifacts with DERIVED_FROM links, materialize the workflow/state/action/identity/role/permission/resource model, and do it all **idempotently**, **deterministically**, and **safely**: explicit test identities only, fail-closed replay gating, and no attack-graph relationship types.
 - **Run network & infrastructure assessment** — eleven typed capabilities (host discovery, port discovery, service observation, protocol identification, banner observation, DNS observation, TLS observation, exposure analysis, infrastructure modeling, service-application correlation, network evidence collection) that produce typed observations over a deterministic `internal.example` fixture (reserved `192.0.2.0/24`), attach them to evidence artifacts with DERIVED_FROM links, materialize the host/port/service/protocol/interface/infrastructure/application model, and do it all **idempotently**, **deterministically**, and **safely**: bounded fail-closed port probes, size-capped + credential-redacted banners, PASSIVE evidence that can never inherit ACTIVE confidence via dedup, and no attack-graph relationship types.
+- **Run identity & directory security assessment** — eleven typed capabilities (directory discovery, identity/group/role/permission/resource inventories, membership, role assignment, permission assignment, relationship analysis, metadata) over a deterministic `AELIONIX-CORP` directory fixture that produce typed observations (human/service/computer identities, groups, roles, permissions, resources, and their descriptive relationships), attach them to evidence artifacts with DERIVED_FROM links, materialize the directory/identity/group/role/permission/resource model (identity entities namespaced by directory), and do it all **idempotently**, **deterministically**, and **safely**: PASSIVE evidence that can never inherit CONTROLLED confidence via dedup, deterministic duplicate collapse, structured failure statuses for synthetic error directories, credential-material redaction (literal `REDACTED`) before any evidence row or world record, metadata contradictions surfaced instead of silently overwritten, and no attack-graph relationship types.
 
 **What it cannot do yet (by design):**
 
@@ -144,6 +145,15 @@ blackforge/
 │   ├── materializer.py    # Observation → world model facts (no attack-graph edges)
 │   ├── redaction.py       # Bound redaction (literal REDACTED marker)
 │   └── engine.py          # NetworkEngine (capability orchestration + auth + bounded ports)
+├── identity/
+│   ├── models.py          # IdentityMode, IdentityRequest, eleven observation models
+│   ├── capabilities.py    # Eleven typed identity capability definitions
+│   ├── transport.py       # Deterministic mock identity directory (no queries, no mutation)
+│   ├── normalization.py   # Tool output → normalized observations
+│   ├── evidence.py        # Observation → evidence (mode-aware dedup)
+│   ├── materializer.py    # Observation → world model facts (no attack-graph edges)
+│   ├── redaction.py       # Bound redaction (literal REDACTED marker)
+│   └── engine.py          # IdentityEngine (capability orchestration + auth + identity resolution)
 ├── intelligence/
 │   ├── llm/
 │   │   ├── base.py        # LLM provider ABC, LLMRequest, LLMResponse
@@ -163,7 +173,7 @@ blackforge/
 project_status.yaml       # Single source of truth for phase status
 notebooks/                # Colab validation notebooks (one per phase + bootstrap)
 docs/                     # Phase documentation + validation record
-tests/                    # Test suite (current: 830 passed, 5 skipped)
+tests/                    # Test suite (current: 881 passed, 5 skipped)
 ```
 
 ## Core Model
@@ -176,6 +186,7 @@ tests/                    # Test suite (current: 830 passed, 5 skipped)
 - **Authentication & authorization** (`docs/authentication-authorization.md`) — a typed, credential-free, explicit-test-identity capability surface for authentication/authorization analysis.
 - **Business logic** (`docs/business-logic.md`) — a typed, fail-closed, evidence-elevated capability surface that models workflows, rules, ownership, and role boundaries without ever materializing attack-graph edges.
 - **Network & infrastructure** (`docs/network-infrastructure.md`) — a typed, mock-only, bounded-probe capability surface that models hosts, services, protocols, exposure, and infrastructure segments with mode-aware evidence integrity and no offensive edges.
+- **Identity & directory security** (`docs/identity-directory-security.md`) — a typed, mock-only, credential-redacted capability surface that inventories identities, groups, roles, permissions, and resources, models their descriptive relationships with metadata contradictions surfaced, and never materializes offensive edges.
 
 ## Security & Authorization Boundary
 
@@ -190,13 +201,13 @@ tests/                    # Test suite (current: 830 passed, 5 skipped)
 
 | Item | Result |
 |---|---|
-| Latest completed-phase commit | `5bf7d8b` (Phase 9) |
-| Full test suite | **830 passed, 5 skipped, 0 failed** (`python -m pytest tests/ -q`) |
-| Bootstrap | `app.healthy()` + `memory_ready`, `evidence_store_ready`, `evidence_memory_link_ready`, `world_model_ready`, `recon_ready`, `webapi_ready`, `auth_ready`, `business_logic_ready`, `network_ready` all PASS |
-| Phase notebooks | Phase 1–9 notebooks executed; Phase 9 last run locally: **PASS** (all 13 executed cells, disposable DBs self-cleaned) |
-| Google Colab | Phase 1 executed on a real free-tier CPU runtime (PASS — recorded in `docs/colab-validation.md`). **Phases 2–9 have been validated locally only; no Colab execution is claimed for them.** |
-| Ruff | Clean on `blackforge/auth/`, `blackforge/webapi/`, `blackforge/business_logic/`, `blackforge/network/`, `blackforge/recon/`, `blackforge/runtime/bootstrap.py`, and the phase-5/6/7/8/9 test files; remaining findings are pre-existing in untouched legacy files/notebooks |
-| Security review | No execution surface, no secrets, no network I/O; redaction at the boundary (literal `REDACTED` / one-way digests); authorization enforced before tool execution; explicit test identities required; fail-closed replay gating; bounded fail-closed port probes; mode-aware evidence dedup (PASSIVE never inherits ACTIVE confidence); no attack-graph relationship materialization |
+| Latest completed-phase commit | `835f0de` (Phase 10) |
+| Full test suite | **881 passed, 5 skipped, 0 failed** (`python -m pytest tests/ -q`) |
+| Bootstrap | `app.healthy()` + `memory_ready`, `evidence_store_ready`, `evidence_memory_link_ready`, `world_model_ready`, `recon_ready`, `webapi_ready`, `auth_ready`, `business_logic_ready`, `network_ready`, `identity_ready` all PASS |
+| Phase notebooks | Phase 1–10 notebooks executed; Phase 10 last run locally: **PASS** (all 13 executed cells, disposable DBs self-cleaned) |
+| Google Colab | Phase 1 executed on a real free-tier CPU runtime (PASS — recorded in `docs/colab-validation.md`). **Phases 2–10 have been validated locally only; no Colab execution is claimed for them.** |
+| Ruff | Clean on `blackforge/auth/`, `blackforge/webapi/`, `blackforge/business_logic/`, `blackforge/network/`, `blackforge/identity/`, `blackforge/recon/`, `blackforge/runtime/bootstrap.py`, and the phase-5/6/7/8/9/10 test files; remaining findings are pre-existing in untouched legacy files/notebooks |
+| Security review | No execution surface, no secrets, no network I/O; redaction at the boundary (literal `REDACTED` / one-way digests); authorization enforced before tool execution; explicit test identities required; fail-closed replay gating; bounded fail-closed port probes; mode-aware evidence dedup (PASSIVE never inherits CONTROLLED/ACTIVE confidence); no attack-graph relationship materialization |
 
 ## Roadmap
 
@@ -210,7 +221,7 @@ tests/                    # Test suite (current: 830 passed, 5 skipped)
 - **Phase 7** — Authentication & Authorization ✅ COMPLETE
 - **Phase 8** — Business Logic & Attack Paths ✅ COMPLETE
 - **Phase 9** — Network & Infrastructure ✅ COMPLETE
-- **Phase 10** — Identity / Active Directory 🔲
+- **Phase 10** — Identity / Active Directory ✅ COMPLETE
 - **Phase 11** — Cloud Security 🔲
 - **Phase 12** — Containers / Kubernetes 🔲
 - **Phase 13** — Source & Runtime Correlation 🔲
@@ -315,9 +326,9 @@ python -m pytest tests/test_recon_phase5.py -v
 ## Limitations
 
 - **Pre-alpha.** Nothing here is production hardening; interfaces may change between phases.
-- **Mock reconnaissance only.** The Phase 5/9 adapters are deterministic fixtures, not real scanners. Real network/API reconnaissance is future work.
-- **No autonomous behavior yet.** Recon and network assessment run under explicit capability authorization; there is no autonomous planner or attack-path engine.
-- **Local validation only for recent phases.** Phases 2–9 notebooks have passed locally; only Phase 1 has been executed on a real Google Colab runtime to date.
+- **Mock reconnaissance only.** The Phase 5/9/10 adapters are deterministic fixtures, not real scanners. Real network/API/directory reconnaissance is future work.
+- **No autonomous behavior yet.** Recon, network, and identity assessment run under explicit capability authorization; there is no autonomous planner or attack-path engine.
+- **Local validation only for recent phases.** Phases 2–10 notebooks have passed locally; only Phase 1 has been executed on a real Google Colab runtime to date.
 
 ## Repository Structure
 

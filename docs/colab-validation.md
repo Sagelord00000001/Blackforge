@@ -19,8 +19,9 @@ Chronological record of per-phase validation. **Validation type matters:**
 | 7 | Authentication & Authorization | `20bea56` | LOCAL ONLY | full suite pass (681 passed, 5 skipped at this phase) | — | observation-only; redaction at boundary (literal `REDACTED`/digests); explicit test identities required |
 | 8 | Business Logic & Attack Paths | `10c54f6` | LOCAL ONLY | full suite pass (765 passed, 5 skipped at this phase) | — | deterministic workflow/rule/role modeling; explicit test identities; fail-closed replay gating; VALIDATED only via validation; no attack-graph relationship types |
 | 9 | Network & Infrastructure | `5bf7d8b` | LOCAL ONLY | full suite pass (830 passed, 5 skipped at this phase) | — | deterministic mock topology (`internal.example`, reserved `192.0.2.0/24`); bounded fail-closed port probes; size-capped + credential-redacted banners; mode-aware evidence dedup (PASSIVE never inherits ACTIVE confidence); failure-aware statuses; no attack-graph relationship types |
+| 10 | Identity / Active Directory | `835f0de` | LOCAL ONLY | full suite pass (881 passed, 5 skipped at this phase) | — | deterministic mock directory (`AELIONIX-CORP`, no real queries, no mutation); identity/group/role/permission/resource inventories + membership/role/permission/relationship/metadata observations; credential-material redaction (literal `REDACTED`) before any evidence row or world record; duplicates deterministically collapsed; metadata contradictions surfaced (authoritative OBSERVED vs correlated INFERRED); mode-aware evidence dedup (PASSIVE never inherits CONTROLLED confidence); failure-aware statuses incl. UNSUPPORTED_DIRECTORY / NO_EVIDENCE; identity entities namespaced by directory; no attack-graph relationship types |
 
-Latest committed phase at the time of writing: **Phase 9** (`5bf7d8b`).
+Latest committed phase at the time of writing: **Phase 10** (`835f0de`).
 
 ---
 
@@ -465,3 +466,62 @@ attack-graph relationship types.
 - Mission isolation and restart persistence across fresh SQLite connections
 
 See `docs/network-infrastructure.md` for the full architecture documentation.
+
+---
+
+## Phase 10 — Identity / Active Directory
+
+**Notebook:** `notebooks/blackforge_phase10_colab.ipynb`
+
+**Validation type:** LOCAL ONLY
+
+**Test result:** full suite pass (881 passed, 5 skipped at this phase)
+
+**Colab result:** —
+
+**Notes / limitations:** deterministic mock directory (`AELIONIX-CORP` /
+`AELIONIX-CORP.LOCAL`) — no real directory is ever queried or mutated, no
+free-form execution; credential-material redaction at the boundary (literal
+`REDACTED` marker, never a hash — `password_hash` / `session_token` /
+`credentials.api_key` demo fields exist only to prove it); duplicates
+deterministically collapsed (`observe_membership` emits duplicate rows, 1
+observation out, PARTIAL + warning); metadata contradictions surfaced as
+assertions (authoritative directory feed OBSERVED, correlated feed INFERRED,
+`assertions_contradicted` counted) instead of silent overwrite; **mode-aware
+evidence dedup** — PASSIVE observations are LOW confidence and can never
+inherit an earlier CONTROLLED record's HIGH confidence; failure-aware statuses
+(TIMEOUT, RATE_LIMITED, UNAUTHORIZED, MALFORMED_RESPONSE,
+UNSUPPORTED_DIRECTORY, PARTIAL, NO_EVIDENCE); evidence rows DERIVED_FROM their
+run's artifact; directory/identity/group/role/permission/resource materialized
+with contains/member_of/has_role/has_permission/applies_to only — no attack-graph
+relationship types.
+
+### What Phase 10 Validates
+
+- Eleven typed identity capabilities registered and executable; `identity_ready`
+  bootstrap flag equal to 11 typed capabilities (registry total 61)
+- Full pipeline: capability → mock transport → normalization → evidence
+  (artifact + DERIVED_FROM) → World Model → memory
+- Authorization enforced before transport execution; unknown capabilities,
+  out-of-scope targets (`MINECORP`), and unsupported target types (IP) rejected
+- Directory-aware scope matching: `AELIONIX-CORP` covers `AELIONIX-CORP.LOCAL`,
+  UPN identities, down-level identities, and DNS sub-objects
+- Redaction: `build-service.password_hash` / `session_token` and
+  `api-service.credentials.api_key` values never appear in raw output, artifact
+  payloads, observation rows, or world-model assertions
+- World Model: DIRECTORY --CONTAINS--> identity/group/role/permission/resource;
+  IDENTITY --MEMBER_OF--> GROUP, --HAS_ROLE--> ROLE; ROLE --HAS_PERMISSION-->
+  PERMISSION; PERMISSION --APPLIES_TO--> RESOURCE; identity entities namespaced
+  by directory (`identity|aelionix-corp|alice`)
+- Metadata contradiction surfaced: `department=engineering` OBSERVED +
+  `department=sales` INFERRED both persisted, contradiction recorded
+- Confidence policy: PASSIVE→LOW, direct CONTROLLED→HIGH, relationship
+  analysis→MEDIUM, correlated metadata feed→MEDIUM; mode-aware dedup verified
+- No attack-graph relationship types materialized (EXPLOITS/CAN_COMPROMISE/
+  LEADS_TO/ENABLES absent)
+- Failure states: TIMEOUT, RATE_LIMITED, UNAUTHORIZED, MALFORMED_RESPONSE,
+  UNSUPPORTED_DIRECTORY all produce correct statuses on synthetic error
+  directories; unknown identity → NO_EVIDENCE; duplicates collapsed (PARTIAL)
+- Mission isolation and restart persistence across fresh SQLite connections
+
+See `docs/identity-directory-security.md` for the full architecture documentation.
