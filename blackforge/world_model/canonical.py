@@ -116,6 +116,11 @@ _NAME_NORMALIZERS: dict[EntityType, str] = {
     EntityType.BUSINESS_ACTION: "slug",
     EntityType.BUSINESS_STATE: "slug",
     EntityType.BUSINESS_RULE: "slug",
+    EntityType.HOST: "hostname-or-ip",
+    EntityType.PORT: "port",
+    EntityType.PROTOCOL: "slug",
+    EntityType.INTERFACE: "slug",
+    EntityType.INFRASTRUCTURE: "slug",
 }
 
 
@@ -133,6 +138,8 @@ def normalize_entity_name(entity_type: EntityType, name: str) -> str:
         return normalize_url(name)
     if normalizer == "network":
         return normalize_network(name)
+    if normalizer == "port":
+        return normalize_port(name)
     if normalizer == "hostname-or-ip":
         return normalize_hostname_or_ip(name)
     if normalizer == "ip":

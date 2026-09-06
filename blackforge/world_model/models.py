@@ -46,6 +46,11 @@ class EntityType(str, Enum):
     BUSINESS_ACTION = "business_action"
     BUSINESS_STATE = "business_state"
     BUSINESS_RULE = "business_rule"
+    HOST = "host"
+    PORT = "port"
+    PROTOCOL = "protocol"
+    INTERFACE = "interface"
+    INFRASTRUCTURE = "infrastructure"
 
 
 class RelationshipType(str, Enum):
@@ -80,6 +85,12 @@ class RelationshipType(str, Enum):
     HAS_STATE = "has_state"
     TRANSITIONS_TO = "transitions_to"
     OPERATES_ON = "operates_on"
+    HAS_PORT = "has_port"
+    RUNS_SERVICE = "runs_service"
+    USES_PROTOCOL = "uses_protocol"
+    HAS_INTERFACE = "has_interface"
+    MEMBER_OF = "member_of"
+    SERVES = "serves"
 
 
 class WorldLifecycle(str, Enum):

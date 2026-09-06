@@ -169,3 +169,19 @@ class BusinessLogicExecutionError(BusinessLogicError):
 
 class BusinessLogicTimeoutError(BusinessLogicError):
     """Raised when a business logic capability exceeds its execution time budget."""
+
+
+class NetworkError(BlackforgeError):
+    """Base class for network & infrastructure capability failures."""
+
+
+class NetworkNormalizationError(NetworkError):
+    """Raised when network raw output cannot be parsed/validated."""
+
+
+class NetworkExecutionError(NetworkError):
+    """Raised when a network capability fails to execute."""
+
+
+class NetworkTimeoutError(NetworkError):
+    """Raised when a network capability exceeds its execution time budget."""

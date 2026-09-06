@@ -21,6 +21,7 @@ from blackforge.intelligence.routing.router import ModelRouter
 from blackforge.memory.manager import MemoryManager
 from blackforge.memory.repository import InMemoryRepository, SQLiteMemoryRepository
 from blackforge.mission.manager import MissionManager
+from blackforge.network.engine import NetworkEngine
 from blackforge.recon.engine import ReconEngine
 from blackforge.webapi.engine import WebApiEngine
 from blackforge.world_model.repository import (
@@ -179,6 +180,13 @@ class BlackforgeApp:
             memory_bridge=self.evidence_bridge,
             authorization=self.authorization,
         )
+        self.network_engine = NetworkEngine(
+            capability_registry=self.capability_registry,
+            evidence_store=self.evidence_store,
+            world_model=self.world_model,
+            memory_bridge=self.evidence_bridge,
+            authorization=self.authorization,
+        )
         self.llm: LLMProvider = llm_provider or _resolve_provider(self.config)
         self.model_router = ModelRouter(default_provider=self.llm)
 
@@ -221,6 +229,10 @@ class BlackforgeApp:
             "business_logic_ready": (
                 self.business_logic_engine is not None
                 and len(self.business_logic_engine.capabilities) == 11
+            ),
+            "network_ready": (
+                self.network_engine is not None
+                and len(self.network_engine.capabilities) == 11
             ),
             "model_router_ready": self.model_router is not None,
         }
