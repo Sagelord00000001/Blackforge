@@ -70,6 +70,17 @@ class EntityType(str, Enum):
     PUBLIC_ADDRESS = "public_address"
     PRIVATE_ADDRESS = "private_address"
     INTERNAL_SERVICE = "internal_service"
+    CLUSTER = "cluster"
+    NODE = "node"
+    NAMESPACE = "namespace"
+    WORKLOAD = "workload"
+    DEPLOYMENT = "deployment"
+    POD = "pod"
+    CONTAINER_IMAGE = "container_image"
+    REGISTRY = "registry"
+    INGRESS = "ingress"
+    SERVICE_ACCOUNT = "service_account"
+    NETWORK_POLICY = "network_policy"
 
 
 class RelationshipType(str, Enum):
@@ -115,6 +126,11 @@ class RelationshipType(str, Enum):
     PROTECTS = "protects"
     ORIGINATES_FROM = "originates_from"
     FRONTED_BY = "fronted_by"
+    DEPLOYS = "deploys"
+    SELECTS = "selects"
+    USES_IMAGE = "uses_image"
+    USES_SERVICE_ACCOUNT = "uses_service_account"
+    HAS_NETWORK_POLICY = "has_network_policy"
 
 
 class WorldLifecycle(str, Enum):

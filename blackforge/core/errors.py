@@ -217,3 +217,19 @@ class CloudExecutionError(CloudError):
 
 class CloudTimeoutError(CloudError):
     """Raised when a cloud capability exceeds its execution time budget."""
+
+
+class ContainerError(BlackforgeError):
+    """Raised on container & Kubernetes security capability failures."""
+
+
+class ContainerNormalizationError(ContainerError):
+    """Raised when container raw output cannot be parsed/validated."""
+
+
+class ContainerExecutionError(ContainerError):
+    """Raised when a container capability fails to execute."""
+
+
+class ContainerTimeoutError(ContainerError):
+    """Raised when a container capability exceeds its execution time budget."""
