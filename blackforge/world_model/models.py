@@ -38,6 +38,17 @@ class EntityType(str, Enum):
     TECHNOLOGY = "technology"
     NETWORK = "network"
     CLOUD_RESOURCE = "cloud_resource"
+    CLOUD_PROVIDER = "cloud_provider"
+    CLOUD_ACCOUNT = "cloud_account"
+    CLOUD_PROJECT = "cloud_project"
+    CLOUD_REGION = "cloud_region"
+    CLOUD_COMPUTE = "cloud_compute"
+    CLOUD_STORAGE = "cloud_storage"
+    CLOUD_DATABASE = "cloud_database"
+    CLOUD_NETWORK = "cloud_network"
+    CLOUD_CLUSTER = "cloud_cluster"
+    CLOUD_CONTAINER = "cloud_container"
+    CLOUD_SECRET = "cloud_secret"
     CONTAINER = "container"
     SOURCE_COMPONENT = "source_component"
     DATA_STORE = "data_store"
@@ -53,6 +64,12 @@ class EntityType(str, Enum):
     INFRASTRUCTURE = "infrastructure"
     DIRECTORY = "directory"
     GROUP = "group"
+    EDGE_ENDPOINT = "edge_endpoint"
+    ORIGIN_ENDPOINT = "origin_endpoint"
+    ORIGIN_CANDIDATE = "origin_candidate"
+    PUBLIC_ADDRESS = "public_address"
+    PRIVATE_ADDRESS = "private_address"
+    INTERNAL_SERVICE = "internal_service"
 
 
 class RelationshipType(str, Enum):
@@ -93,6 +110,11 @@ class RelationshipType(str, Enum):
     HAS_INTERFACE = "has_interface"
     MEMBER_OF = "member_of"
     SERVES = "serves"
+    PROXIES = "proxies"
+    ROUTES_TO = "routes_to"
+    PROTECTS = "protects"
+    ORIGINATES_FROM = "originates_from"
+    FRONTED_BY = "fronted_by"
 
 
 class WorldLifecycle(str, Enum):

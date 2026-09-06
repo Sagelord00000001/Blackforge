@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ipaddress
+import re
 from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field
@@ -73,7 +74,32 @@ def _targets_match(query: str, reference: str, ref_type: TargetType) -> bool:
     if ref_type == TargetType.IDENTITY:
         return query.strip().lower() == reference.strip().lower()
 
+    if ref_type == TargetType.CLOUD:
+        return _cloud_targets_match(query, reference)
+
     return False
+
+
+_CLOUD_TARGET_RE = re.compile(r"^[a-z][a-z0-9-]*/[a-z0-9][a-z0-9._-]*$")
+
+
+def _cloud_targets_match(query: str, reference: str) -> bool:
+    """Match a cloud scope reference against a cloud target.
+
+    A CLOUD reference is an umbrella: ``aws`` covers every account under the
+    provider, ``aws/aelionix-aws-test`` covers that account and every
+    resource sub-path beneath it. The comparison is purely lexical
+    (``provider/container`` prefixes) — it decides scope membership without
+    touching the data.
+    """
+    q = query.strip().lower()
+    ref = reference.strip().lower()
+    if not q or not ref:
+        return False
+    if "/" in ref:
+        prefix = ref.rstrip("/")
+        return q == prefix or q.startswith(prefix + "/")
+    return q.split("/", 1)[0] == ref
 
 
 def _directory_short_name(ref: str) -> str:
@@ -153,6 +179,9 @@ def detect_target_type(value: str) -> TargetType:
 
     if value.startswith("http://") or value.startswith("https://"):
         return TargetType.URL
+
+    if "/" in value and _CLOUD_TARGET_RE.match(value.strip().lower()):
+        return TargetType.CLOUD
 
     if "." in value:
         return TargetType.DOMAIN

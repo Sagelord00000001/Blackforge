@@ -201,3 +201,19 @@ class IdentityExecutionError(IdentityError):
 
 class IdentityTimeoutError(IdentityError):
     """Raised when an identity capability exceeds its execution time budget."""
+
+
+class CloudError(BlackforgeError):
+    """Raised on cloud & infrastructure security capability failures."""
+
+
+class CloudNormalizationError(CloudError):
+    """Raised when cloud raw output cannot be parsed/validated."""
+
+
+class CloudExecutionError(CloudError):
+    """Raised when a cloud capability fails to execute."""
+
+
+class CloudTimeoutError(CloudError):
+    """Raised when a cloud capability exceeds its execution time budget."""

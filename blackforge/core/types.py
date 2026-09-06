@@ -198,6 +198,7 @@ class TargetType(str, Enum):
     ASSET = "asset"
     DIRECTORY = "directory"
     IDENTITY = "identity"
+    CLOUD = "cloud"
 
 
 class TimestampedModel(BaseModel):

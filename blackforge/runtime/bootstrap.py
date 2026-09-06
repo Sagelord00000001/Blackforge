@@ -6,6 +6,7 @@ from blackforge.auth.engine import AuthEngine
 from blackforge.authorization import AuthorizationBoundary
 from blackforge.business_logic.engine import BusinessLogicEngine
 from blackforge.capabilities.registry import CapabilityRegistry
+from blackforge.cloud.engine import CloudEngine
 from blackforge.core.config import BlackforgeConfig, load_config
 from blackforge.core.errors import ConfigurationError
 from blackforge.core.logging import get_logger, setup_logging
@@ -195,6 +196,13 @@ class BlackforgeApp:
             memory_bridge=self.evidence_bridge,
             authorization=self.authorization,
         )
+        self.cloud_engine = CloudEngine(
+            capability_registry=self.capability_registry,
+            evidence_store=self.evidence_store,
+            world_model=self.world_model,
+            memory_bridge=self.evidence_bridge,
+            authorization=self.authorization,
+        )
         self.llm: LLMProvider = llm_provider or _resolve_provider(self.config)
         self.model_router = ModelRouter(default_provider=self.llm)
 
@@ -245,6 +253,10 @@ class BlackforgeApp:
             "identity_ready": (
                 self.identity_engine is not None
                 and len(self.identity_engine.capabilities) == 11
+            ),
+            "cloud_ready": (
+                self.cloud_engine is not None
+                and len(self.cloud_engine.capabilities) == 20
             ),
             "model_router_ready": self.model_router is not None,
         }
