@@ -16,7 +16,7 @@ latest_completed_phase: 12
 next_phase: 13              # Source & Runtime Correlation
 
 # Latest commit id of the most recently completed phase (never invented; taken from git history).
-latest_phase_commit: placeholder
+latest_phase_commit: a89b3af
 
 last_known_validation:
   tests_passed: 1007
@@ -90,7 +90,7 @@ phases:
   12:
     name: Containers / Kubernetes
     status: COMPLETE
-    commit: placeholder
+    commit: a89b3af
     validation: local
   13:
     name: Source & Runtime Correlation
