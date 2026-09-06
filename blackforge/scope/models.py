@@ -67,6 +67,73 @@ def _targets_match(query: str, reference: str, ref_type: TargetType) -> bool:
     if ref_type == TargetType.URL:
         return query.startswith(reference)
 
+    if ref_type == TargetType.DIRECTORY:
+        return _directory_targets_match(query, reference)
+
+    if ref_type == TargetType.IDENTITY:
+        return query.strip().lower() == reference.strip().lower()
+
+    return False
+
+
+def _directory_short_name(ref: str) -> str:
+    """Short NetBIOS-style name for a directory: ``corp.local`` -> ``corp``."""
+    if "." not in ref:
+        return ref
+    head = ref.split(".", 1)[0]
+    return head if head else ref
+
+
+def _directory_targets_match(query: str, reference: str) -> bool:
+    """Match any authorized spelling of a directory against a target.
+
+    A DIRECTORY reference is an umbrella: a bare corporate name
+    (``AELIONIX-CORP``), a fully qualified domain (``AELIONIX-CORP.LOCAL``),
+    UPN identities (``alice@aelionix-corp.local``), down-level identities
+    (``AELIONIX-CORP\\alice``), and sub-objects of the domain
+    (``srv.aelionix-corp.local``). The comparison is normalization-based and
+    never touches the data: it only decides scope membership.
+    """
+    q = query.strip().lower()
+    ref = reference.strip().lower()
+    if not q or not ref:
+        return False
+
+    if q == ref:
+        return True
+
+    short = _directory_short_name(ref)
+
+    # Fully qualified domain form, either orientation (corp <-> corp.local).
+    if ref.endswith(".local") and q == ref[: -len(".local")]:
+        return True
+    if not ref.endswith(".local") and q == f"{ref}.local":
+        return True
+
+    # Sub-object of the directory's DNS namespace: name under corp.local
+    # or a bare machine identity under the short name.
+    if ref.endswith(".local"):
+        if q.endswith("." + ref):
+            return True
+        if q.endswith("." + short):
+            return True
+
+    # UPN identities: alice@corp / alice@corp.local.
+    if "@" in q:
+        _, mail_domain = q.rsplit("@", 1)
+        if mail_domain in (ref, f"{short}") or (
+            ref.endswith(".local") and mail_domain == ref
+        ):
+            return True
+        if not ref.endswith(".local") and mail_domain == f"{ref}.local":
+            return True
+
+    # Down-level identities: CORP\alice / CORP.LOCAL\alice.
+    if "\\" in q:
+        directory_part = q.split("\\", 1)[0]
+        if directory_part in (ref, short):
+            return True
+
     return False
 
 

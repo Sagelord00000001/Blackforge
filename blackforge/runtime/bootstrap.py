@@ -16,6 +16,7 @@ from blackforge.evidence.repository import (
     SQLiteEvidenceRepository,
 )
 from blackforge.evidence.store import EvidenceStore
+from blackforge.identity.engine import IdentityEngine
 from blackforge.intelligence.llm.mock import MockLLMProvider
 from blackforge.intelligence.routing.router import ModelRouter
 from blackforge.memory.manager import MemoryManager
@@ -187,6 +188,13 @@ class BlackforgeApp:
             memory_bridge=self.evidence_bridge,
             authorization=self.authorization,
         )
+        self.identity_engine = IdentityEngine(
+            capability_registry=self.capability_registry,
+            evidence_store=self.evidence_store,
+            world_model=self.world_model,
+            memory_bridge=self.evidence_bridge,
+            authorization=self.authorization,
+        )
         self.llm: LLMProvider = llm_provider or _resolve_provider(self.config)
         self.model_router = ModelRouter(default_provider=self.llm)
 
@@ -233,6 +241,10 @@ class BlackforgeApp:
             "network_ready": (
                 self.network_engine is not None
                 and len(self.network_engine.capabilities) == 11
+            ),
+            "identity_ready": (
+                self.identity_engine is not None
+                and len(self.identity_engine.capabilities) == 11
             ),
             "model_router_ready": self.model_router is not None,
         }

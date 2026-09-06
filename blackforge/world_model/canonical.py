@@ -95,6 +95,23 @@ def normalize_port(value: int | str) -> str:
     return str(port)
 
 
+def normalize_directory(value: str) -> str:
+    """Canonical short name for a directory entity.
+
+    Accepts the bare corporate name (``AELIONIX-CORP``) or its DNS domain
+    (``AELIONIX-CORP.LOCAL``) and reduces it to the lowercase short name.
+    Identity forms (UPN ``name@corp``, down-level ``CORP\\name``) and path
+    separators are rejected — directory entities are never derived from an
+    identity.
+    """
+    text = value.strip().rstrip(".").lower()
+    if not text or len(text) > 128:
+        raise ValueError("invalid directory name")
+    if "\\" in text or "@" in text or "/" in text:
+        raise ValueError("invalid directory name")
+    return text.split(".", 1)[0] if "." in text else text
+
+
 _NAME_NORMALIZERS: dict[EntityType, str] = {
     EntityType.ENDPOINT: "url",
     EntityType.NETWORK: "network",
@@ -121,6 +138,8 @@ _NAME_NORMALIZERS: dict[EntityType, str] = {
     EntityType.PROTOCOL: "slug",
     EntityType.INTERFACE: "slug",
     EntityType.INFRASTRUCTURE: "slug",
+    EntityType.DIRECTORY: "directory",
+    EntityType.GROUP: "slug",
 }
 
 
@@ -146,6 +165,8 @@ def normalize_entity_name(entity_type: EntityType, name: str) -> str:
         return normalize_ip(name)
     if normalizer == "hostname":
         return normalize_hostname(name)
+    if normalizer == "directory":
+        return normalize_directory(name)
     return name.strip().lower()
 
 

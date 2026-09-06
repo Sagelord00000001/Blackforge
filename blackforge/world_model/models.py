@@ -51,6 +51,8 @@ class EntityType(str, Enum):
     PROTOCOL = "protocol"
     INTERFACE = "interface"
     INFRASTRUCTURE = "infrastructure"
+    DIRECTORY = "directory"
+    GROUP = "group"
 
 
 class RelationshipType(str, Enum):

@@ -185,3 +185,19 @@ class NetworkExecutionError(NetworkError):
 
 class NetworkTimeoutError(NetworkError):
     """Raised when a network capability exceeds its execution time budget."""
+
+
+class IdentityError(BlackforgeError):
+    """Raised on identity & directory security capability failures."""
+
+
+class IdentityNormalizationError(IdentityError):
+    """Raised when identity/directory raw output cannot be parsed/validated."""
+
+
+class IdentityExecutionError(IdentityError):
+    """Raised when an identity capability fails to execute."""
+
+
+class IdentityTimeoutError(IdentityError):
+    """Raised when an identity capability exceeds its execution time budget."""

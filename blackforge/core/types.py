@@ -196,6 +196,8 @@ class TargetType(str, Enum):
     URL = "url"
     APPLICATION = "application"
     ASSET = "asset"
+    DIRECTORY = "directory"
+    IDENTITY = "identity"
 
 
 class TimestampedModel(BaseModel):
