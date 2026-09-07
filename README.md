@@ -1,11 +1,11 @@
 # AELIONIX BLACKFORGE
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Sagelord00000001/Blackforge/blob/master/notebooks/blackforge_phase13_colab.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Sagelord00000001/Blackforge/blob/master/notebooks/blackforge_phase14_colab.ipynb)
 
 Blackforge is a modular, provider-agnostic **evidence-driven security assessment platform**. It separates concerns into clear architectural layers — configuration, authorization, mission/scope management, evidence handling, capability orchestration, LLM abstraction, persistent memory, and a world model of known facts. It is **pre-alpha** and safe-by-default: mock mode is the default, nothing attacks anything by default, and every analysis path is gated by a programmatic authorization boundary.
 
-> Latest completed phase: **Phase 13 — Source & Runtime Correlation**.
-> Next phase: **Phase 14 — Attack Graph & Autonomous Planner**.
+> Latest completed phase: **Phase 14 — Attack Graph & Autonomous Planner**.
+> Next phase: **Phase 15 — Multi-Agent Architecture**.
 
 ---
 
@@ -27,7 +27,7 @@ Blackforge is a modular, provider-agnostic **evidence-driven security assessment
 | 11 | Cloud Security | ✅ COMPLETE | `0c9571b` |
 | 12 | Containers / Kubernetes | ✅ COMPLETE | `a89b3af` |
 | 13 | Source & Runtime Correlation | ✅ COMPLETE | `d42376f` |
-| 14 | Attack Graph & Autonomous Planner | 🔲 PLANNED | — |
+| 14 | Attack Graph & Autonomous Planner | ✅ COMPLETE | `6dc440b` |
 | 15 | Multi-Agent Architecture | 🔲 PLANNED | — |
 | 16 | Adversary Emulation | 🔲 PLANNED | — |
 | 17 | Evaluation & Benchmarking | 🔲 PLANNED | — |
@@ -55,12 +55,14 @@ In plain language, with the currently implemented foundation:
 - **Run container & Kubernetes security assessment** — fourteen typed capabilities (cluster/node/namespace/workload/pod/container/image-metadata/service/ingress/RBAC/service-account/network-policy/security-context/resource-configuration observation) over a deterministic synthetic cluster fixture (`aelionix-platform`, `aelionix-staging`, and the qualified `aelionix-platform/frontend` namespace) that produce typed observations (clusters, nodes, namespaces, workloads + deployments, pods, containers, images + registries, services, ingress, RBAC roles, service accounts, network policies, security contexts, resource limits), attach them to evidence artifacts with DERIVED_FROM links, materialize the cluster/node/namespace/workload/deployment/pod/container/image/registry/service/ingress/role/permission/service-account/network-policy model, and do it all **idempotently**, **deterministically**, and **safely**: mock-only transport (no real cluster), PASSIVE evidence that can never inherit CONTROLLED confidence via dedup, namespaced-target narrowing, no-evidence estates never fabricated as "clean", security-context assertions surfaced on containers, resource-limit contradictions recorded as INFERRED discrepancies (never silently overwritten), credential-material redaction (literal `REDACTED`) before any evidence row or world record, out-of-scope / unknown-capability / unsupported-target-type fail-closed rejection before any transport, structured failure statuses for synthetic error clusters, and no attack-graph relationship types.
 - **Run source & runtime correlation** — the first **two-independent-sources** capability layer: ten typed correlation capabilities (container-configuration, image/runtime, workload-manifest, service-exposure, ingress/runtime, network-policy, cloud-resource, api-surface, application-configuration, RBAC-manifest) that join a **declared** source fixture (5 records) and an independent **observed** runtime fixture (6 records) over a deterministic mock estate, pair them via canonical identities (`scope_kind:scope:name` — a service in a different scope is **never** silently matched), compare with a deterministic versioned rule vocabulary (`sr_exact`/`sr_set`/`sr_digest`/`sr_presence`/`sr_contradiction`), and report `MATCH` / `DISCREPANCY` / `CONTRADICTION` / `UNKNOWN` / `NOT_COMPARABLE` outcomes — and do it all **idempotently**, **deterministically**, and **safely**: mock-only transport (no real cluster/registry/cloud), correlation evidence `DERIVED_FROM` the independent source+runtime evidence (append-only, never mutating either side), confidence equal to the **weaker** of the two sides (never inflated by dedup), a runtime-only service reported as `UNKNOWN` (never fabricated as `MATCH`), credential-material redaction (literal `REDACTED`) before any evidence row or world record, out-of-scope / unknown-capability / unsupported-target-type fail-closed rejection before any transport, a structured `no_fixture_records` failure status (never an empty "clean" result), `SOURCE_COMPONENT` + `:source`/`:runtime` world materialization with `DECLARED_AS`/`OBSERVED_AS`/`CORRESPONDS_TO`/`DIFFERS_FROM` edges only, and no attack-graph relationship types.
 
+- **Run attack-graph reasoning & autonomous planner foundation** — the first *reasoning* layer: a descriptive attack graph derived from the World Model and evidence (entity mirrors, `EXPOSES` edges from `SERVES`, `REQUIRES_VALIDATION` edges from declared-vs-runtime discrepancies, count-bounded `POTENTIALLY_LEADS_TO` hypothesis edges) with path-state-priority classification, typed evidence gaps, deduplicated missing-prerequisite surfacing, an explainable LOW/MODERATE/ELEVATED/HIGH priority score, and a budget-bounded planner that emits **ranked, in-scope, fail-closed assessment plans** (`PLAN_READY` / `NO_ACTION_AVAILABLE` / `NO_GAPS` / `PLAN_CAPPED` / `INSUFFICIENT_SCOPE`) gated by the same Scope → Authorization → capability-allowlist boundary — idempotently and deterministically, with SQLite graph/plan persistence and no new capability IDs.
+
 **What it cannot do yet (by design):**
 
 - **No real scanning or network I/O.** Reconnaissance and network capabilities use *mock adapters* over deterministic fixtures (reserved documentation ranges). Nothing touches a network.
 - **No exploitation.** There are no exploit paths, no credential use, and no post-exploitation. Offensive edge types (`LEADS_TO`, `ENABLES`, `EXPLOITS`, `CAN_COMPROMISE`, privilege-escalation paths) are rejected at the enum layer of the world model. Phase 8 adds the *capability foundation* for analyzing business logic attack paths — it never materializes an attack graph.
-- **No attack graph and no autonomous planning.** Attack-path reasoning is Phase 14, not now.
-- **No autonomous pentesting engine, no multi-agent orchestration.** Those are future phases.
+- **No attack-path execution.** The Phase 14 attack graph is a *descriptive, derived view*; the planner only emits plans for authorized, evidence-gathering assessment steps and never executes them. Anything beyond descriptive graph reasoning — exploitation, autonomous pentesting — remains future work.
+- **No autonomous pentesting engine, no multi-agent orchestration.** The Phase 14 planner plans assessment steps (budget-bounded, fail-closed); it does not autonomously execute them. Autonomous execution and multi-agent orchestration are future phases.
 - **No production hardening.** This is a pre-alpha foundation for a platform, not a shipping security product.
 
 ## Architecture
@@ -192,6 +194,20 @@ blackforge/
 │   ├── materializer.py    # Pairs → SOURCE_COMPONENT + :source/:runtime world facts
 │   ├── redaction.py       # Bound redaction (literal REDACTED marker)
 │   └── engine.py          # SourceRuntimeEngine (capability orchestration + auth)
+├── attack_graph/
+│   ├── models.py          # Graph states, PathState, plan/step models, gap vocabulary
+│   ├── builder.py         # World model/evidence → derived graph (mirrors, EXPOSES, REQUIRES_VALIDATION, hypotheses)
+│   ├── query.py           # Open paths, typed gaps, path classification, evaluation
+│   ├── planner.py         # AssessmentPlanner (budget- and scope-bounded, fail-closed plans)
+│   ├── actions.py         # CapabilityMeta + CandidateAction (plan-step surface)
+│   ├── scoring.py         # Explainable LOW/MODERATE/ELEVATED/HIGH priority scoring
+│   ├── validation.py      # Order-sensitive plan validation
+│   ├── priority.py        # Coverage-capability allowlist (deterministic gap mapping)
+│   ├── materializer.py    # Graph ↔ canonical-theme helpers
+│   ├── rules.py           # Derivation/state-boundary rules
+│   ├── repository.py      # In-memory graph repository
+│   ├── sqlite_store.py    # Graph + plan persistence (structural round-trip)
+│   └── graph.py           # AttackGraph container + path helpers
 ├── intelligence/
 │   ├── llm/
 │   │   ├── base.py        # LLM provider ABC, LLMRequest, LLMResponse
@@ -211,7 +227,7 @@ blackforge/
 project_status.yaml       # Single source of truth for phase status
 notebooks/                # Colab validation notebooks (one per phase + bootstrap)
 docs/                     # Phase documentation + validation record
-tests/                    # Test suite (current: 1121 passed, 5 skipped)
+tests/                    # Test suite (current: 1273 passed, 5 skipped)
 ```
 
 ## Core Model
@@ -228,6 +244,7 @@ tests/                    # Test suite (current: 1121 passed, 5 skipped)
 - **Cloud security** (`docs/cloud-security.md`) — a typed, mock-only, credential-redacted, capability-allowlisted capability surface that inventories providers, accounts, projects, resources, IAM, exposure, secrets, edge architecture, origin candidates, and transport security across three estates — with contradictions surfaced, candidates never auto-confirmed, mode-aware evidence integrity, and no offensive edges.
 - **Container & Kubernetes security** (`docs/container-kubernetes-security.md`) — a typed, mock-only, credential-redacted capability surface that observes clusters, nodes, namespaces, workloads/deployments, pods, containers, images/registries, services, ingress, RBAC, service accounts, network policies, security contexts, and resource limits across a synthetic cluster fixture — with namespaced-target narrowing, no-evidence estates never fabricated as "clean", contradictions (including resource-limit discrepancies) surfaced at INFERRED confidence, mode-aware evidence integrity, and no offensive edges.
 - **Source & runtime correlation** (`docs/source-runtime-correlation.md`) — the first two-independent-sources capability layer: ten typed, low-risk, CONTROLLED correlations that join an independent declared (source) fixture with an independent observed (runtime) fixture over a deterministic mock estate, pair via canonical identities, compare with a deterministic versioned rule vocabulary, and materialize `SOURCE_COMPONENT` entities with `DECLARED_AS`/`OBSERVED_AS`/`CORRESPONDS_TO`/`DIFFERS_FROM` edges — with derived evidence (never mutating either side), weaker-side confidence, unknown-not-fabricated semantics, fail-closed rejection, credential redaction, and no offensive edges.
+- **Attack graph & autonomous planner** (`docs/attack-graph-autonomous-planner.md`) — a descriptive, derived reasoning layer: world-model/evidence → graph (entity mirrors, `EXPOSES`, `REQUIRES_VALIDATION`, bounded `POTENTIALLY_LEADS_TO` hypotheses), path-state-priority classification (hypotheses never upgraded), typed evidence gaps, deduplicated missing prerequisites, explainable priority scoring, and a budget/scope-bounded planner that fails closed (`NO_ACTION_AVAILABLE`, `INSUFFICIENT_SCOPE`, `PLAN_CAPPED`) and emits only plans for authorized evidence-gathering steps. Graph connectivity is explicitly not exploitability.
 
 ## Security & Authorization Boundary
 
@@ -242,13 +259,13 @@ tests/                    # Test suite (current: 1121 passed, 5 skipped)
 
 | Item | Result |
 |---|---|
-| Latest completed-phase commit | `d42376f` (Phase 13) |
-| Full test suite | **1121 passed, 5 skipped, 0 failed** (`python -m pytest tests/ -q`) |
-| Bootstrap | `app.healthy()` + `memory_ready`, `evidence_store_ready`, `evidence_memory_link_ready`, `world_model_ready`, `recon_ready`, `webapi_ready`, `auth_ready`, `business_logic_ready`, `network_ready`, `identity_ready`, `cloud_ready`, `container_ready`, `source_runtime_ready` all PASS |
-| Phase notebooks | Phase 1–13 notebooks executed; Phase 13 last run locally: **PASS** (all 11 executed cells, disposable DBs self-cleaned) |
-| Google Colab | Phase 1 executed on a real free-tier CPU runtime (PASS — recorded in `docs/colab-validation.md`). **Phases 2–13 have been validated locally only; no Colab execution is claimed for them.** |
-| Ruff | Clean on `blackforge/auth/`, `blackforge/webapi/`, `blackforge/business_logic/`, `blackforge/network/`, `blackforge/identity/`, `blackforge/cloud/`, `blackforge/container/`, `blackforge/source_runtime/`, `blackforge/recon/`, `blackforge/runtime/bootstrap.py`, and the phase-5/6/7/8/9/10/11/12/13 test files; remaining findings are pre-existing in untouched legacy files/notebooks |
-| Security review | No execution surface, no secrets, no network I/O; redaction at the boundary (literal `REDACTED` / one-way digests); authorization enforced before tool execution; explicit test identities required; fail-closed replay gating; bounded fail-closed port probes; out-of-scope / unknown-capability / unsupported-target-type rejection before transport; mode-aware evidence dedup (PASSIVE never inherits CONTROLLED/ACTIVE confidence); derived correlation evidence never authors facts (unknown never fabricated as a match); no attack-graph relationship materialization |
+| Latest completed-phase commit | `6dc440b` (Phase 14) |
+| Full test suite | **1273 passed, 5 skipped, 0 failed** (`python -m pytest tests/ -q`) |
+| Bootstrap | `app.healthy()` + `memory_ready`, `evidence_store_ready`, `evidence_memory_link_ready`, `world_model_ready`, `recon_ready`, `webapi_ready`, `auth_ready`, `business_logic_ready`, `network_ready`, `identity_ready`, `cloud_ready`, `container_ready`, `source_runtime_ready`, `attack_graph_ready`, `planner_ready` all PASS |
+| Phase notebooks | Phase 1–14 notebooks executed; Phase 14 last run locally: **PASS** (all 11 executed cells, disposable DBs self-cleaned) |
+| Google Colab | Phase 1 executed on a real free-tier CPU runtime (PASS — recorded in `docs/colab-validation.md`). **Phases 2–14 have been validated locally only; no Colab execution is claimed for them.** |
+| Ruff | Clean on `blackforge/auth/`, `blackforge/webapi/`, `blackforge/business_logic/`, `blackforge/network/`, `blackforge/identity/`, `blackforge/cloud/`, `blackforge/container/`, `blackforge/source_runtime/`, `blackforge/recon/`, `blackforge/attack_graph/`, `blackforge/runtime/bootstrap.py`, and the phase-5/6/7/8/9/10/11/12/13/14 test files; remaining findings are pre-existing in untouched legacy files/notebooks |
+| Security review | No execution surface, no secrets, no network I/O; redaction at the boundary (literal `REDACTED` / one-way digests); authorization enforced before tool execution; explicit test identities required; fail-closed replay gating; bounded fail-closed port probes; out-of-scope / unknown-capability / unsupported-target-type rejection before transport; mode-aware evidence dedup (PASSIVE never inherits CONTROLLED/ACTIVE confidence); derived correlation evidence never authors facts (unknown never fabricated as a match); the Phase 14 attack graph is a descriptive derived view whose planner fails closed (no generic executor, no exploitation) |
 
 ## Roadmap
 
@@ -266,7 +283,7 @@ tests/                    # Test suite (current: 1121 passed, 5 skipped)
 - **Phase 11** — Cloud Security ✅ COMPLETE
 - **Phase 12** — Containers / Kubernetes ✅ COMPLETE
 - **Phase 13** — Source & Runtime Correlation ✅ COMPLETE
-- **Phase 14** — Attack Graph & Autonomous Planner 🔲
+- **Phase 14** — Attack Graph & Autonomous Planner ✅ COMPLETE
 - **Phase 15** — Multi-Agent Architecture 🔲
 - **Phase 16** — Adversary Emulation 🔲
 - **Phase 17** — Evaluation & Benchmarking 🔲
@@ -368,8 +385,9 @@ python -m pytest tests/test_recon_phase5.py -v
 
 - **Pre-alpha.** Nothing here is production hardening; interfaces may change between phases.
 - **Mock reconnaissance only.** The Phase 5/9/10/11/12/13 adapters are deterministic fixtures, not real scanners. Real network/API/directory/cloud/container/source-runtime correlation is future work.
-- **No autonomous behavior yet.** Recon, network, identity, cloud, container, and source-runtime correlation run under explicit capability authorization; there is no autonomous planner or attack-path engine.
-- **Local validation only for recent phases.** Phases 2–13 notebooks have passed locally; only Phase 1 has been executed on a real Google Colab runtime to date.
+- **Descriptive attack graph only.** The Phase 14 graph is a derived, descriptive reasoning view. The planner plans authorized evidence-gathering steps and never executes them; exploitation and autonomous pentesting are future work.
+- **No autonomous execution yet.** The Phase 14 planner computes budget-bounded, fail-closed *plans*; recon, network, identity, cloud, container, and source-runtime correlation still run only under explicit capability authorization.
+- **Local validation only for recent phases.** Phases 2–14 notebooks have passed locally; only Phase 1 has been executed on a real Google Colab runtime to date.
 
 ## Repository Structure
 
