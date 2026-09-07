@@ -1,11 +1,11 @@
 # AELIONIX BLACKFORGE
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Sagelord00000001/Blackforge/blob/master/notebooks/blackforge_phase12_colab.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Sagelord00000001/Blackforge/blob/master/notebooks/blackforge_phase13_colab.ipynb)
 
 Blackforge is a modular, provider-agnostic **evidence-driven security assessment platform**. It separates concerns into clear architectural layers — configuration, authorization, mission/scope management, evidence handling, capability orchestration, LLM abstraction, persistent memory, and a world model of known facts. It is **pre-alpha** and safe-by-default: mock mode is the default, nothing attacks anything by default, and every analysis path is gated by a programmatic authorization boundary.
 
-> Latest completed phase: **Phase 12 — Containers / Kubernetes**.
-> Next phase: **Phase 13 — Source & Runtime Correlation**.
+> Latest completed phase: **Phase 13 — Source & Runtime Correlation**.
+> Next phase: **Phase 14 — Attack Graph & Autonomous Planner**.
 
 ---
 
@@ -26,7 +26,7 @@ Blackforge is a modular, provider-agnostic **evidence-driven security assessment
 | 10 | Identity / Active Directory | ✅ COMPLETE | `835f0de` |
 | 11 | Cloud Security | ✅ COMPLETE | `0c9571b` |
 | 12 | Containers / Kubernetes | ✅ COMPLETE | `a89b3af` |
-| 13 | Source & Runtime Correlation | 🔲 PLANNED | — |
+| 13 | Source & Runtime Correlation | ✅ COMPLETE | `d42376f` |
 | 14 | Attack Graph & Autonomous Planner | 🔲 PLANNED | — |
 | 15 | Multi-Agent Architecture | 🔲 PLANNED | — |
 | 16 | Adversary Emulation | 🔲 PLANNED | — |
@@ -53,6 +53,7 @@ In plain language, with the currently implemented foundation:
 - **Run identity & directory security assessment** — eleven typed capabilities (directory discovery, identity/group/role/permission/resource inventories, membership, role assignment, permission assignment, relationship analysis, metadata) over a deterministic `AELIONIX-CORP` directory fixture that produce typed observations (human/service/computer identities, groups, roles, permissions, resources, and their descriptive relationships), attach them to evidence artifacts with DERIVED_FROM links, materialize the directory/identity/group/role/permission/resource model (identity entities namespaced by directory), and do it all **idempotently**, **deterministically**, and **safely**: PASSIVE evidence that can never inherit CONTROLLED confidence via dedup, deterministic duplicate collapse, structured failure statuses for synthetic error directories, credential-material redaction (literal `REDACTED`) before any evidence row or world record, metadata contradictions surfaced instead of silently overwritten, and no attack-graph relationship types.
 - **Run cloud security assessment** — twenty typed capabilities (provider discovery, account/project/resource inventories, compute/storage/database/network/container/cluster observation, public-exposure analysis, security-configuration observation, secret-reference observation, IAM identity/role/permission observation, resource-relationship analysis, edge-architecture observation, origin-candidate analysis, transport-security observation) over a deterministic three-estate AWS/Azure/GCP fixture that produce typed observations (providers, accounts, projects, resources, IAM, exposure, secrets, edges, origin candidates, transport), attach them to evidence artifacts with DERIVED_FROM links, materialize the cloud-provider/account/project/region/resource/identity/role/permission/edge/origin/candidate/endpoint/address model (entities namespaced per provider account), and do it all **idempotently**, **deterministically**, and **safely**: mock-only transport (no real cloud), PASSIVE evidence that can never inherit CONTROLLED confidence via dedup, a structured security-configuration contradiction surfaced (never silently overwritten), contradictory TLS assertions (`True`+`False`, `TLS1.0`+`TLS1.3`) both visible, credential-material redaction (literal `REDACTED`) before any evidence row or world record, origin candidates that stay INFERRED/unvalidated and are never confirmed as origins, an LLM-suggestion → deterministic-policy → capability-allowlist → scope → authorization gate with no generic executor, structured failure statuses for synthetic error accounts, and no attack-graph relationship types.
 - **Run container & Kubernetes security assessment** — fourteen typed capabilities (cluster/node/namespace/workload/pod/container/image-metadata/service/ingress/RBAC/service-account/network-policy/security-context/resource-configuration observation) over a deterministic synthetic cluster fixture (`aelionix-platform`, `aelionix-staging`, and the qualified `aelionix-platform/frontend` namespace) that produce typed observations (clusters, nodes, namespaces, workloads + deployments, pods, containers, images + registries, services, ingress, RBAC roles, service accounts, network policies, security contexts, resource limits), attach them to evidence artifacts with DERIVED_FROM links, materialize the cluster/node/namespace/workload/deployment/pod/container/image/registry/service/ingress/role/permission/service-account/network-policy model, and do it all **idempotently**, **deterministically**, and **safely**: mock-only transport (no real cluster), PASSIVE evidence that can never inherit CONTROLLED confidence via dedup, namespaced-target narrowing, no-evidence estates never fabricated as "clean", security-context assertions surfaced on containers, resource-limit contradictions recorded as INFERRED discrepancies (never silently overwritten), credential-material redaction (literal `REDACTED`) before any evidence row or world record, out-of-scope / unknown-capability / unsupported-target-type fail-closed rejection before any transport, structured failure statuses for synthetic error clusters, and no attack-graph relationship types.
+- **Run source & runtime correlation** — the first **two-independent-sources** capability layer: ten typed correlation capabilities (container-configuration, image/runtime, workload-manifest, service-exposure, ingress/runtime, network-policy, cloud-resource, api-surface, application-configuration, RBAC-manifest) that join a **declared** source fixture (5 records) and an independent **observed** runtime fixture (6 records) over a deterministic mock estate, pair them via canonical identities (`scope_kind:scope:name` — a service in a different scope is **never** silently matched), compare with a deterministic versioned rule vocabulary (`sr_exact`/`sr_set`/`sr_digest`/`sr_presence`/`sr_contradiction`), and report `MATCH` / `DISCREPANCY` / `CONTRADICTION` / `UNKNOWN` / `NOT_COMPARABLE` outcomes — and do it all **idempotently**, **deterministically**, and **safely**: mock-only transport (no real cluster/registry/cloud), correlation evidence `DERIVED_FROM` the independent source+runtime evidence (append-only, never mutating either side), confidence equal to the **weaker** of the two sides (never inflated by dedup), a runtime-only service reported as `UNKNOWN` (never fabricated as `MATCH`), credential-material redaction (literal `REDACTED`) before any evidence row or world record, out-of-scope / unknown-capability / unsupported-target-type fail-closed rejection before any transport, a structured `no_fixture_records` failure status (never an empty "clean" result), `SOURCE_COMPONENT` + `:source`/`:runtime` world materialization with `DECLARED_AS`/`OBSERVED_AS`/`CORRESPONDS_TO`/`DIFFERS_FROM` edges only, and no attack-graph relationship types.
 
 **What it cannot do yet (by design):**
 
@@ -178,6 +179,19 @@ blackforge/
 │   ├── engine.py          # ContainerEngine (capability orchestration + auth)
 │   ├── addressing.py      # Cluster / namespace / cluster-namespace target parsing
 │   └── canonical.py       # Container-world canonical keys
+├── source_runtime/
+│   ├── models.py          # SourceRuntimeMode, SourceRuntimeRequest, result/status
+│   ├── capabilities.py    # Ten typed correlation capability definitions
+│   ├── source.py          # Independent DECLARED (source) fixture side
+│   ├── runtime.py         # Independent OBSERVED (runtime) fixture side
+│   ├── identity.py        # Canonical identity construction + matching
+│   ├── rules.py           # Deterministic rule vocabulary (sr_exact/set/digest/presence/contradiction)
+│   ├── correlation.py     # CorrelationEvaluator + comparison/aggregation
+│   ├── transport.py       # Deterministic mock two-source transport (no infra access)
+│   ├── evidence.py        # Source/runtime evidence + derived outcome evidence (weaker-fidelity dedup)
+│   ├── materializer.py    # Pairs → SOURCE_COMPONENT + :source/:runtime world facts
+│   ├── redaction.py       # Bound redaction (literal REDACTED marker)
+│   └── engine.py          # SourceRuntimeEngine (capability orchestration + auth)
 ├── intelligence/
 │   ├── llm/
 │   │   ├── base.py        # LLM provider ABC, LLMRequest, LLMResponse
@@ -197,7 +211,7 @@ blackforge/
 project_status.yaml       # Single source of truth for phase status
 notebooks/                # Colab validation notebooks (one per phase + bootstrap)
 docs/                     # Phase documentation + validation record
-tests/                    # Test suite (current: 1007 passed, 5 skipped)
+tests/                    # Test suite (current: 1121 passed, 5 skipped)
 ```
 
 ## Core Model
@@ -213,6 +227,7 @@ tests/                    # Test suite (current: 1007 passed, 5 skipped)
 - **Identity & directory security** (`docs/identity-directory-security.md`) — a typed, mock-only, credential-redacted capability surface that inventories identities, groups, roles, permissions, and resources, models their descriptive relationships with metadata contradictions surfaced, and never materializes offensive edges.
 - **Cloud security** (`docs/cloud-security.md`) — a typed, mock-only, credential-redacted, capability-allowlisted capability surface that inventories providers, accounts, projects, resources, IAM, exposure, secrets, edge architecture, origin candidates, and transport security across three estates — with contradictions surfaced, candidates never auto-confirmed, mode-aware evidence integrity, and no offensive edges.
 - **Container & Kubernetes security** (`docs/container-kubernetes-security.md`) — a typed, mock-only, credential-redacted capability surface that observes clusters, nodes, namespaces, workloads/deployments, pods, containers, images/registries, services, ingress, RBAC, service accounts, network policies, security contexts, and resource limits across a synthetic cluster fixture — with namespaced-target narrowing, no-evidence estates never fabricated as "clean", contradictions (including resource-limit discrepancies) surfaced at INFERRED confidence, mode-aware evidence integrity, and no offensive edges.
+- **Source & runtime correlation** (`docs/source-runtime-correlation.md`) — the first two-independent-sources capability layer: ten typed, low-risk, CONTROLLED correlations that join an independent declared (source) fixture with an independent observed (runtime) fixture over a deterministic mock estate, pair via canonical identities, compare with a deterministic versioned rule vocabulary, and materialize `SOURCE_COMPONENT` entities with `DECLARED_AS`/`OBSERVED_AS`/`CORRESPONDS_TO`/`DIFFERS_FROM` edges — with derived evidence (never mutating either side), weaker-side confidence, unknown-not-fabricated semantics, fail-closed rejection, credential redaction, and no offensive edges.
 
 ## Security & Authorization Boundary
 
@@ -227,13 +242,13 @@ tests/                    # Test suite (current: 1007 passed, 5 skipped)
 
 | Item | Result |
 |---|---|
-| Latest completed-phase commit | `a89b3af` (Phase 12) |
-| Full test suite | **1007 passed, 5 skipped, 0 failed** (`python -m pytest tests/ -q`) |
-| Bootstrap | `app.healthy()` + `memory_ready`, `evidence_store_ready`, `evidence_memory_link_ready`, `world_model_ready`, `recon_ready`, `webapi_ready`, `auth_ready`, `business_logic_ready`, `network_ready`, `identity_ready`, `cloud_ready`, `container_ready` all PASS |
-| Phase notebooks | Phase 1–12 notebooks executed; Phase 12 last run locally: **PASS** (all 11 executed cells, disposable DBs self-cleaned) |
-| Google Colab | Phase 1 executed on a real free-tier CPU runtime (PASS — recorded in `docs/colab-validation.md`). **Phases 2–12 have been validated locally only; no Colab execution is claimed for them.** |
-| Ruff | Clean on `blackforge/auth/`, `blackforge/webapi/`, `blackforge/business_logic/`, `blackforge/network/`, `blackforge/identity/`, `blackforge/cloud/`, `blackforge/container/`, `blackforge/recon/`, `blackforge/runtime/bootstrap.py`, and the phase-5/6/7/8/9/10/11/12 test files; remaining findings are pre-existing in untouched legacy files/notebooks |
-| Security review | No execution surface, no secrets, no network I/O; redaction at the boundary (literal `REDACTED` / one-way digests); authorization enforced before tool execution; explicit test identities required; fail-closed replay gating; bounded fail-closed port probes; out-of-scope / unknown-capability / unsupported-target-type rejection before transport; mode-aware evidence dedup (PASSIVE never inherits CONTROLLED/ACTIVE confidence); no attack-graph relationship materialization |
+| Latest completed-phase commit | `d42376f` (Phase 13) |
+| Full test suite | **1121 passed, 5 skipped, 0 failed** (`python -m pytest tests/ -q`) |
+| Bootstrap | `app.healthy()` + `memory_ready`, `evidence_store_ready`, `evidence_memory_link_ready`, `world_model_ready`, `recon_ready`, `webapi_ready`, `auth_ready`, `business_logic_ready`, `network_ready`, `identity_ready`, `cloud_ready`, `container_ready`, `source_runtime_ready` all PASS |
+| Phase notebooks | Phase 1–13 notebooks executed; Phase 13 last run locally: **PASS** (all 11 executed cells, disposable DBs self-cleaned) |
+| Google Colab | Phase 1 executed on a real free-tier CPU runtime (PASS — recorded in `docs/colab-validation.md`). **Phases 2–13 have been validated locally only; no Colab execution is claimed for them.** |
+| Ruff | Clean on `blackforge/auth/`, `blackforge/webapi/`, `blackforge/business_logic/`, `blackforge/network/`, `blackforge/identity/`, `blackforge/cloud/`, `blackforge/container/`, `blackforge/source_runtime/`, `blackforge/recon/`, `blackforge/runtime/bootstrap.py`, and the phase-5/6/7/8/9/10/11/12/13 test files; remaining findings are pre-existing in untouched legacy files/notebooks |
+| Security review | No execution surface, no secrets, no network I/O; redaction at the boundary (literal `REDACTED` / one-way digests); authorization enforced before tool execution; explicit test identities required; fail-closed replay gating; bounded fail-closed port probes; out-of-scope / unknown-capability / unsupported-target-type rejection before transport; mode-aware evidence dedup (PASSIVE never inherits CONTROLLED/ACTIVE confidence); derived correlation evidence never authors facts (unknown never fabricated as a match); no attack-graph relationship materialization |
 
 ## Roadmap
 
@@ -250,7 +265,7 @@ tests/                    # Test suite (current: 1007 passed, 5 skipped)
 - **Phase 10** — Identity / Active Directory ✅ COMPLETE
 - **Phase 11** — Cloud Security ✅ COMPLETE
 - **Phase 12** — Containers / Kubernetes ✅ COMPLETE
-- **Phase 13** — Source & Runtime Correlation 🔲
+- **Phase 13** — Source & Runtime Correlation ✅ COMPLETE
 - **Phase 14** — Attack Graph & Autonomous Planner 🔲
 - **Phase 15** — Multi-Agent Architecture 🔲
 - **Phase 16** — Adversary Emulation 🔲
@@ -352,9 +367,9 @@ python -m pytest tests/test_recon_phase5.py -v
 ## Limitations
 
 - **Pre-alpha.** Nothing here is production hardening; interfaces may change between phases.
-- **Mock reconnaissance only.** The Phase 5/9/10/11/12 adapters are deterministic fixtures, not real scanners. Real network/API/directory/cloud/container reconnaissance is future work.
-- **No autonomous behavior yet.** Recon, network, identity, cloud, and container assessment run under explicit capability authorization; there is no autonomous planner or attack-path engine.
-- **Local validation only for recent phases.** Phases 2–12 notebooks have passed locally; only Phase 1 has been executed on a real Google Colab runtime to date.
+- **Mock reconnaissance only.** The Phase 5/9/10/11/12/13 adapters are deterministic fixtures, not real scanners. Real network/API/directory/cloud/container/source-runtime correlation is future work.
+- **No autonomous behavior yet.** Recon, network, identity, cloud, container, and source-runtime correlation run under explicit capability authorization; there is no autonomous planner or attack-path engine.
+- **Local validation only for recent phases.** Phases 2–13 notebooks have passed locally; only Phase 1 has been executed on a real Google Colab runtime to date.
 
 ## Repository Structure
 
