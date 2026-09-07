@@ -26,6 +26,7 @@ from blackforge.memory.repository import InMemoryRepository, SQLiteMemoryReposit
 from blackforge.mission.manager import MissionManager
 from blackforge.network.engine import NetworkEngine
 from blackforge.recon.engine import ReconEngine
+from blackforge.source_runtime.engine import SourceRuntimeEngine
 from blackforge.webapi.engine import WebApiEngine
 from blackforge.world_model.repository import (
     InMemoryWorldRepository,
@@ -211,6 +212,13 @@ class BlackforgeApp:
             memory_bridge=self.evidence_bridge,
             authorization=self.authorization,
         )
+        self.source_runtime_engine = SourceRuntimeEngine(
+            capability_registry=self.capability_registry,
+            evidence_store=self.evidence_store,
+            world_model=self.world_model,
+            memory_bridge=self.evidence_bridge,
+            authorization=self.authorization,
+        )
         self.llm: LLMProvider = llm_provider or _resolve_provider(self.config)
         self.model_router = ModelRouter(default_provider=self.llm)
 
@@ -269,6 +277,10 @@ class BlackforgeApp:
             "container_ready": (
                 self.container_engine is not None
                 and len(self.container_engine.capabilities) == 14
+            ),
+            "source_runtime_ready": (
+                self.source_runtime_engine is not None
+                and len(self.source_runtime_engine.capabilities) == 10
             ),
             "model_router_ready": self.model_router is not None,
         }

@@ -131,6 +131,14 @@ class RelationshipType(str, Enum):
     USES_IMAGE = "uses_image"
     USES_SERVICE_ACCOUNT = "uses_service_account"
     HAS_NETWORK_POLICY = "has_network_policy"
+    # Source & runtime correlation edges. These are descriptive: DECLARED_AS /
+    # OBSERVED_AS bind a resource to its authored vs live state; CORRESPONDS_TO /
+    # DIFFERS_FROM record the correlation result between two states. They are
+    # never attack-graph edges.
+    DECLARED_AS = "declared_as"
+    OBSERVED_AS = "observed_as"
+    CORRESPONDS_TO = "corresponds_to"
+    DIFFERS_FROM = "differs_from"
 
 
 class WorldLifecycle(str, Enum):

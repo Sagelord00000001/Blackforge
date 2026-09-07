@@ -233,3 +233,19 @@ class ContainerExecutionError(ContainerError):
 
 class ContainerTimeoutError(ContainerError):
     """Raised when a container capability exceeds its execution time budget."""
+
+
+class SourceRuntimeError(BlackforgeError):
+    """Raised on source & runtime correlation capability failures."""
+
+
+class SourceRuntimeNormalizationError(SourceRuntimeError):
+    """Raised when source/runtime raw output cannot be parsed/validated."""
+
+
+class SourceRuntimeExecutionError(SourceRuntimeError):
+    """Raised when a source/runtime correlation capability fails to execute."""
+
+
+class SourceRuntimeTimeoutError(SourceRuntimeError):
+    """Raised when a source/runtime correlation capability exceeds its time budget."""
