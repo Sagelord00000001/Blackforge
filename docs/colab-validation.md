@@ -525,3 +525,51 @@ relationship types.
 - Mission isolation and restart persistence across fresh SQLite connections
 
 See `docs/identity-directory-security.md` for the full architecture documentation.
+
+---
+
+## Phase 14.1 — Real Mission Integration, LLM Orchestration & Development Console
+
+**Notebook:** `notebooks/blackforge_phase14_1_colab.ipynb`
+
+**Validation type:** LOCAL ONLY
+
+**Test result:** full suite pass (1329 passed, 5 skipped at this phase, including the 29 orchestration + 27 development-console phase tests)
+
+**Colab result:** —
+
+**Notes / limitations:** real-controlled observation is bounded, std-lib, and
+read-only (DNS / TLS / HTTP metadata, no redirects) and fires only when mission
+policy + operator flag + profile permit; planners may only return registered
+capabilities and in-scope targets (fail-closed); every execution funnels
+through the deterministic `MissionOrchestrator`; the Development Console is
+access-gated, talks only to a thin service API, and cannot bypass authorization,
+scope, evidence, or world-model storage; reports are redaction-safe.
+
+### What Phase 14.1 Validates
+
+- Bounded mission + scope built from a validated seed target and an explicit
+  assessment profile and execution budget
+- Deterministic orchestrator: the only component that decides whether a planner
+  proposal executes; registration → authorization → scope → adapter → typed
+  request gates
+- Fail-closed planning: unknown capabilities / out-of-scope targets / empty
+  seeds rejected; repeated invalid plans and planner failures stop
+  deterministically
+- Real-controlled read-only observation adapters (`recon.dns`,
+  `recon.tls_metadata`, `recon.http_metadata`,
+  `webapi.security_header_analysis`) installed and gated
+- Evidence → memory → world model → descriptive attack graph normalization on
+  every executed instruction
+- Deterministic stop conditions: max steps / max capability calls / max runtime
+  / max replans / repeated invalid plans / duplicate eviction / evidence
+  saturation / cancelled / planner-requested stop
+- Development Console: access gating, UI/service separation, mission-aware
+  capability view (mock vs real-controlled), asset classification
+  (`in_scope` / `candidate` / `out_of_scope`), redaction-safe evidence, and a
+  descriptive attack-graph view
+- AST security scan: no command-exec / raw-network / eval surface in
+  `blackforge/orchestration` or `blackforge/ui`
+
+See `docs/mission-orchestration.md` and `docs/development-console.md` for the
+full architecture documentation.

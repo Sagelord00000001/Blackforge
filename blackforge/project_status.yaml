@@ -12,19 +12,19 @@ repository: "https://github.com/Sagelord00000001/Blackforge"
 license: MIT
 
 current_phase: 15           # phase being developed / next up
-latest_completed_phase: 14
+latest_completed_phase: 14.1
 next_phase: 15              # Multi-Agent Architecture
 
 # Latest commit id of the most recently completed phase (never invented; taken from git history).
-latest_phase_commit: 6dc440b
+latest_phase_commit: 0894360
 
 last_known_validation:
-  tests_passed: 1273
+  tests_passed: 1329
   tests_skipped: 5
   tests_failed: 0
   full_suite_command: "python -m pytest tests/ -q"
-  local_notebook_result: PASS    # phase-14 notebook executed locally (all 11 executed cells)
-  google_colab_result: null      # no real Google Colab execution recorded for Phase 14 yet
+  local_notebook_result: PASS    # phase-14.1 notebook executed locally (all 17 executed cells)
+  google_colab_result: null      # no real Google Colab execution recorded for Phase 14.1 yet
 
 phases:
   0:
@@ -101,6 +101,11 @@ phases:
     name: Attack Graph & Autonomous Planner
     status: COMPLETE
     commit: 6dc440b
+    validation: local
+  14.1:
+    name: Real Mission Integration, LLM Orchestration & Dev Console
+    status: COMPLETE
+    commit: 0894360
     validation: local
   15:
     name: Multi-Agent Architecture

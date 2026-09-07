@@ -1,10 +1,10 @@
 # AELIONIX BLACKFORGE
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Sagelord00000001/Blackforge/blob/master/notebooks/blackforge_phase14_colab.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Sagelord00000001/Blackforge/blob/master/notebooks/blackforge_phase14_1_colab.ipynb)
 
 Blackforge is a modular, provider-agnostic **evidence-driven security assessment platform**. It separates concerns into clear architectural layers — configuration, authorization, mission/scope management, evidence handling, capability orchestration, LLM abstraction, persistent memory, and a world model of known facts. It is **pre-alpha** and safe-by-default: mock mode is the default, nothing attacks anything by default, and every analysis path is gated by a programmatic authorization boundary.
 
-> Latest completed phase: **Phase 14 — Attack Graph & Autonomous Planner**.
+> Latest completed phase: **Phase 14.1 — Real Mission Integration, LLM Orchestration & Development Console**.
 > Next phase: **Phase 15 — Multi-Agent Architecture**.
 
 ---
@@ -28,6 +28,7 @@ Blackforge is a modular, provider-agnostic **evidence-driven security assessment
 | 12 | Containers / Kubernetes | ✅ COMPLETE | `a89b3af` |
 | 13 | Source & Runtime Correlation | ✅ COMPLETE | `d42376f` |
 | 14 | Attack Graph & Autonomous Planner | ✅ COMPLETE | `6dc440b` |
+| 14.1 | Mission Integration, LLM Orchestration & Dev Console | ✅ COMPLETE | `0894360` |
 | 15 | Multi-Agent Architecture | 🔲 PLANNED | — |
 | 16 | Adversary Emulation | 🔲 PLANNED | — |
 | 17 | Evaluation & Benchmarking | 🔲 PLANNED | — |
@@ -57,12 +58,16 @@ In plain language, with the currently implemented foundation:
 
 - **Run attack-graph reasoning & autonomous planner foundation** — the first *reasoning* layer: a descriptive attack graph derived from the World Model and evidence (entity mirrors, `EXPOSES` edges from `SERVES`, `REQUIRES_VALIDATION` edges from declared-vs-runtime discrepancies, count-bounded `POTENTIALLY_LEADS_TO` hypothesis edges) with path-state-priority classification, typed evidence gaps, deduplicated missing-prerequisite surfacing, an explainable LOW/MODERATE/ELEVATED/HIGH priority score, and a budget-bounded planner that emits **ranked, in-scope, fail-closed assessment plans** (`PLAN_READY` / `NO_ACTION_AVAILABLE` / `NO_GAPS` / `PLAN_CAPPED` / `INSUFFICIENT_SCOPE`) gated by the same Scope → Authorization → capability-allowlist boundary — idempotently and deterministically, with SQLite graph/plan persistence and no new capability IDs.
 
+- **Run bounded real missions through a deterministic orchestrator** — Phase 14.1 turns the capability engine into a mission loop: a `MissionOrchestrator` is the **only** component allowed to decide whether a planner proposal executes. Every dispatch passes registration → authorization → scope → adapter → typed-request gates, then normalizes into evidence, memory, world model and a rebuilt descriptive attack graph. Planners (`mock` / `rule` / `llm`) may only propose **registered** capabilities and **in-scope** targets (fail-closed); execution stops deterministically on max steps / max capability calls / max runtime / max replans / repeated invalid plans / duplicate eviction / evidence saturation / cancellation / planner stop. Real-controlled observation (DNS / TLS / HTTP metadata) is std-lib, read-only, bounded, redaction-safe, and fires only when policy + profile permit.
+
+- **Drive it all from a temporary Development Console (UI)** — an access-gated console that talks only to a thin application service API and can **never** bypass the orchestrator: it exposes no raw storage / transport / engine handles, no evidence-writing or world-model-mutating methods, and renders mission-aware capability views (mock vs real-controlled), asset classifications (`in_scope` / `candidate` / `out_of_scope`), redaction-safe evidence, and a descriptive attack-graph view. The console is gated behind a token (`BLACKFORGE_CONSOLE_TOKEN` or a per-process generated secret).
+
 **What it cannot do yet (by design):**
 
-- **No real scanning or network I/O.** Reconnaissance and network capabilities use *mock adapters* over deterministic fixtures (reserved documentation ranges). Nothing touches a network.
+- **No real scanning or network I/O by default.** Reconnaissance and network capabilities use *mock adapters* over deterministic fixtures (reserved documentation ranges). Nothing touches a network unless an operator explicitly enables the bounded, read-only, std-lib real observation adapters for a mission **and** the mission's policy + profile permit them.
 - **No exploitation.** There are no exploit paths, no credential use, and no post-exploitation. Offensive edge types (`LEADS_TO`, `ENABLES`, `EXPLOITS`, `CAN_COMPROMISE`, privilege-escalation paths) are rejected at the enum layer of the world model. Phase 8 adds the *capability foundation* for analyzing business logic attack paths — it never materializes an attack graph.
-- **No attack-path execution.** The Phase 14 attack graph is a *descriptive, derived view*; the planner only emits plans for authorized, evidence-gathering assessment steps and never executes them. Anything beyond descriptive graph reasoning — exploitation, autonomous pentesting — remains future work.
-- **No autonomous pentesting engine, no multi-agent orchestration.** The Phase 14 planner plans assessment steps (budget-bounded, fail-closed); it does not autonomously execute them. Autonomous execution and multi-agent orchestration are future phases.
+- **No attack-path execution.** The Phase 14 attack graph is a *descriptive, derived view*; the planner only emits plans for authorized, evidence-gathering assessment steps. Phase 14.1 executes those authorized, in-scope, read-only capabilities through the deterministic orchestrator — still never an exploit, never a generic command, never a shell.
+- **No autonomous pentesting engine, no multi-agent orchestration.** Phase 14.1 runs a *bounded, gated, deterministic mission loop* over authorized evidence-gathering capabilities (mock or real-controlled); it does not chain exploits, escalate, or act beyond scope/risk caps. Autonomous multi-agent pentesting is a future phase.
 - **No production hardening.** This is a pre-alpha foundation for a platform, not a shipping security product.
 
 ## Architecture
@@ -208,6 +213,16 @@ blackforge/
 │   ├── repository.py      # In-memory graph repository
 │   ├── sqlite_store.py    # Graph + plan persistence (structural round-trip)
 │   └── graph.py           # AttackGraph container + path helpers
+├── orchestration/
+│   ├── models.py          # Typed mission/planner/policy/view contracts
+│   ├── orchestrator.py    # Deterministic mission loop + gates (Phase 14.1)
+│   ├── planner.py         # Mock/Rule/LLM planners, fail-closed wrappers
+│   ├── routing.py         # Capability registry → engine/adapter routing + views
+│   └── adapters.py        # Bounded, read-only real observation adapters
+├── ui/
+│   ├── access.py          # Temporary console access gate
+│   ├── service.py         # DevelopmentConsoleService (application/service API)
+│   └── console.py         # DevelopmentConsole (thin rendering UI)
 ├── intelligence/
 │   ├── llm/
 │   │   ├── base.py        # LLM provider ABC, LLMRequest, LLMResponse
@@ -227,7 +242,7 @@ blackforge/
 project_status.yaml       # Single source of truth for phase status
 notebooks/                # Colab validation notebooks (one per phase + bootstrap)
 docs/                     # Phase documentation + validation record
-tests/                    # Test suite (current: 1273 passed, 5 skipped)
+tests/                    # Test suite (current: 1329 passed, 5 skipped, incl. all phase tests)
 ```
 
 ## Core Model
@@ -259,13 +274,13 @@ tests/                    # Test suite (current: 1273 passed, 5 skipped)
 
 | Item | Result |
 |---|---|
-| Latest completed-phase commit | `6dc440b` (Phase 14) |
-| Full test suite | **1273 passed, 5 skipped, 0 failed** (`python -m pytest tests/ -q`) |
+| Latest completed-phase commit | `0894360` (Phase 14.1) |
+| Full test suite | **1329 passed, 5 skipped, 0 failed** (`python -m pytest tests/ -q`), covering all phases including the 29 orchestration + 27 development-console phase-14.1 tests |
 | Bootstrap | `app.healthy()` + `memory_ready`, `evidence_store_ready`, `evidence_memory_link_ready`, `world_model_ready`, `recon_ready`, `webapi_ready`, `auth_ready`, `business_logic_ready`, `network_ready`, `identity_ready`, `cloud_ready`, `container_ready`, `source_runtime_ready`, `attack_graph_ready`, `planner_ready` all PASS |
-| Phase notebooks | Phase 1–14 notebooks executed; Phase 14 last run locally: **PASS** (all 11 executed cells, disposable DBs self-cleaned) |
-| Google Colab | Phase 1 executed on a real free-tier CPU runtime (PASS — recorded in `docs/colab-validation.md`). **Phases 2–14 have been validated locally only; no Colab execution is claimed for them.** |
-| Ruff | Clean on `blackforge/auth/`, `blackforge/webapi/`, `blackforge/business_logic/`, `blackforge/network/`, `blackforge/identity/`, `blackforge/cloud/`, `blackforge/container/`, `blackforge/source_runtime/`, `blackforge/recon/`, `blackforge/attack_graph/`, `blackforge/runtime/bootstrap.py`, and the phase-5/6/7/8/9/10/11/12/13/14 test files; remaining findings are pre-existing in untouched legacy files/notebooks |
-| Security review | No execution surface, no secrets, no network I/O; redaction at the boundary (literal `REDACTED` / one-way digests); authorization enforced before tool execution; explicit test identities required; fail-closed replay gating; bounded fail-closed port probes; out-of-scope / unknown-capability / unsupported-target-type rejection before transport; mode-aware evidence dedup (PASSIVE never inherits CONTROLLED/ACTIVE confidence); derived correlation evidence never authors facts (unknown never fabricated as a match); the Phase 14 attack graph is a descriptive derived view whose planner fails closed (no generic executor, no exploitation) |
+| Phase notebooks | Phase 1–14.1 notebooks executed; Phase 14.1 last run locally: **PASS** (all executed cells, disposable DBs self-cleaned) |
+| Google Colab | Phase 1 executed on a real free-tier CPU runtime (PASS — recorded in `docs/colab-validation.md`). **Phases 2–14.1 have been validated locally only; no Colab execution is claimed for them.** |
+| Ruff | Clean on `blackforge/auth/`, `blackforge/webapi/`, `blackforge/business_logic/`, `blackforge/network/`, `blackforge/identity/`, `blackforge/cloud/`, `blackforge/container/`, `blackforge/source_runtime/`, `blackforge/recon/`, `blackforge/attack_graph/`, `blackforge/orchestration/`, `blackforge/ui/`, `blackforge/runtime/bootstrap.py`, and the phase-5/6/7/8/9/10/11/12/13/14/14.1 test files; remaining findings are pre-existing in untouched legacy files/notebooks |
+| Security review | No execution surface, no secrets, no network I/O (mock default); redaction at the boundary (literal `REDACTED` / one-way digests); authorization enforced before tool execution; explicit test identities required; fail-closed replay gating; bounded fail-closed port probes; out-of-scope / unknown-capability / unsupported-target-type rejection before transport; mode-aware evidence dedup (PASSIVE never inherits CONTROLLED/ACTIVE confidence); derived correlation evidence never authors facts (unknown never fabricated as a match); the Phase 14 attack graph is a descriptive derived view whose planner fails closed (no generic executor, no exploitation); Phase 14.1 adds a deterministic mission orchestrator (authorization/scope/adapter/typing gates on every dispatch) and an access-gated Development Console that cannot bypass the orchestrator, with an AST security scan asserting no command-exec / raw-network / eval surface |
 
 ## Roadmap
 
@@ -284,6 +299,7 @@ tests/                    # Test suite (current: 1273 passed, 5 skipped)
 - **Phase 12** — Containers / Kubernetes ✅ COMPLETE
 - **Phase 13** — Source & Runtime Correlation ✅ COMPLETE
 - **Phase 14** — Attack Graph & Autonomous Planner ✅ COMPLETE
+- **Phase 14.1** — Real Mission Integration, LLM Orchestration & Development Console ✅ COMPLETE
 - **Phase 15** — Multi-Agent Architecture 🔲
 - **Phase 16** — Adversary Emulation 🔲
 - **Phase 17** — Evaluation & Benchmarking 🔲
@@ -346,7 +362,7 @@ BLACKFORGE_LLM_MODEL=Qwen/Qwen2.5-3B-Instruct
 ## Testing
 
 ```bash
-# Full suite (current: 946 passed, 5 skipped)
+# Full suite (current: 1329 passed, 5 skipped)
 python -m pytest tests/ -v
 
 # With coverage
