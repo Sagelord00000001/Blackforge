@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from blackforge.attack_graph.builder import AttackGraphBuilder
+from blackforge.attack_graph.planner import AssessmentPlanner
+from blackforge.attack_graph.repository import InMemoryAttackGraphRepository
 from blackforge.auth.engine import AuthEngine
 from blackforge.authorization import AuthorizationBoundary
 from blackforge.business_logic.engine import BusinessLogicEngine
@@ -219,6 +222,17 @@ class BlackforgeApp:
             memory_bridge=self.evidence_bridge,
             authorization=self.authorization,
         )
+        self.attack_graph_builder = AttackGraphBuilder(
+            world_model=self.world_model,
+            evidence_store=self.evidence_store,
+        )
+        self.attack_graph_repository = InMemoryAttackGraphRepository()
+        self.attack_graph_planner = AssessmentPlanner(
+            repository=self.attack_graph_repository,
+            builder=self.attack_graph_builder,
+            registry=self.capability_registry,
+            authorization=self.authorization,
+        )
         self.llm: LLMProvider = llm_provider or _resolve_provider(self.config)
         self.model_router = ModelRouter(default_provider=self.llm)
 
@@ -282,6 +296,12 @@ class BlackforgeApp:
                 self.source_runtime_engine is not None
                 and len(self.source_runtime_engine.capabilities) == 10
             ),
+            "attack_graph_ready": (
+                self.attack_graph_builder is not None
+                and self.attack_graph_repository is not None
+                and self.attack_graph_repository.health_check()
+            ),
+            "planner_ready": self.attack_graph_planner is not None,
             "model_router_ready": self.model_router is not None,
         }
 

@@ -249,3 +249,15 @@ class SourceRuntimeExecutionError(SourceRuntimeError):
 
 class SourceRuntimeTimeoutError(SourceRuntimeError):
     """Raised when a source/runtime correlation capability exceeds its time budget."""
+
+
+class GraphError(BlackforgeError):
+    """Raised on attack-graph failures."""
+
+
+class GraphValidationError(GraphError):
+    """Raised when an attack-graph record violates a validation boundary."""
+
+
+class PlanningError(GraphError):
+    """Raised when the assessment planner cannot produce a plan."""

@@ -6,7 +6,6 @@ from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, Field, GetCoreSchemaHandler, GetJsonSchemaHandler
-from pydantic.json_schema import JsonSchemaMode
 from pydantic_core import core_schema
 
 
@@ -88,6 +87,22 @@ class AssetID(_IDStr):
 
 class MemoryID(_IDStr):
     _prefix = "mem"
+
+
+class AttackGraphNodeID(_IDStr):
+    _prefix = "agn"
+
+
+class AttackGraphEdgeID(_IDStr):
+    _prefix = "age"
+
+
+class GraphPathID(_IDStr):
+    _prefix = "agp"
+
+
+class AssessmentPlanID(_IDStr):
+    _prefix = "plan"
 
 
 class SessionID(_IDStr):
