@@ -24,6 +24,7 @@ by the phase security scan.
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import json
 import time
 from typing import TYPE_CHECKING, Any
@@ -54,15 +55,20 @@ from blackforge.orchestration.models import (
     CapabilityRouting,
     CapabilityView,
     DecisionKind,
+    EvidenceSource,
     EvidenceViewRow,
+    ExecutionMode,
     ExecutionPhase,
+    FindingView,
     GraphEdgeView,
     GraphSummary,
     InstructionRecord,
     InvestigationStatus,
+    LLMRuntimeStatus,
     MissionPolicy,
     MissionRuntimeState,
     MissionSetup,
+    MissionTimelineEntry,
     PlannerContext,
     PlannerDecision,
     PlannerSource,
@@ -243,6 +249,59 @@ class MissionOrchestrator:
         policy = self._policy(mission)
         started = time.time()
 
+        # Planner-mode gate: enforce the declared planner mode against what is
+        # actually going to run. No silent mock fallback is allowed in REAL.
+        state.execution_mode = policy.execution_mode
+        llm_status = LLMRuntimeStatus(mode=policy.planner_mode)
+        if isinstance(active_planner, LLMPlanner):
+            provider = active_planner._provider  # noqa: SLF001 - runtime observation
+            provider_meta = {}
+            try:
+                provider_meta = dict(provider.metadata() or {})
+            except Exception:  # noqa: BLE001 - metadata must never crash the guard
+                provider_meta = {"provider": "unknown", "model": "unknown"}
+            provider_name = str(provider_meta.get("provider", "unknown")).lower()
+            llm_status.provider = provider_name
+            llm_status.model = str(provider_meta.get("model", "unknown"))
+        if policy.planner_mode is ExecutionMode.REAL and (
+            not isinstance(active_planner, LLMPlanner) or llm_status.provider == "mock"
+        ):
+            state.stop_reason = StopReason.REAL_MODE_GUARD
+            llm_status.health = "FAIL"
+            llm_status.invocation = "NOT_USED"
+            llm_status.inference_validated = False
+            llm_status.message = (
+                "planner_mode=real requires a real non-mock LLM provider; "
+                f"got planner={getattr(active_planner, 'planner_id', '?')} "
+                f"provider={llm_status.provider}"
+            )
+            state.llm_status = llm_status
+            return self._finalize(mission, state)
+        if policy.planner_mode is ExecutionMode.MOCK and isinstance(
+            active_planner, LLMPlanner
+        ) and llm_status.provider != "mock":
+            active_planner = self.rule_planner
+            llm_status.invocation = "NOT_USED"
+            llm_status.message = (
+                "planner_mode=mock prevented invocation of a real model "
+                f"({llm_status.provider}/{llm_status.model}); active planner "
+                "reduced to the deterministic rule planner"
+            )
+        state.llm_status = llm_status
+
+        if policy.execution_mode is ExecutionMode.REAL and not self._routing(
+            mission, scope
+        ).authorized:
+            # REAL execution requires at least one usable real transport; if
+            # none is authorized the run fails instead of silently running mock.
+            state.stop_reason = StopReason.REAL_MODE_GUARD
+            state.llm_status.health = "FAIL"
+            state.llm_status.message = (
+                "execution_mode=real has no authorized real-controlled "
+                "capability to run; refusing to fall back to mock"
+            )
+            return self._finalize(mission, state)
+
         while True:
             if self._budget_broken(policy, state, started):
                 break
@@ -306,9 +365,20 @@ class MissionOrchestrator:
     ) -> PlannerDecision:
         """Ask the chosen planner; fail over deterministically on failure."""
         try:
-            return planner.plan(ctx)
+            decision = planner.plan(ctx)
+            self._record_invocation(state, planner, succeeded=True)
+            return decision
         except PlannerInvalidDecision as exc:
             state.invalid_plans += 1
+            self._record_invocation(state, planner, succeeded=False, note=str(exc))
+            if (
+                policy.planner_mode is ExecutionMode.REAL
+                and isinstance(planner, LLMPlanner)
+            ):
+                state.stop_reason = StopReason.REAL_MODE_GUARD
+                return _closed_decision(
+                    f"planner_mode=real failed closed (no fallback): {exc}"
+                )
             if state.invalid_plans >= policy.invalid_plan_limit:
                 state.stop_reason = StopReason.REPEATED_INVALID_PLANNER
                 return _closed_decision(f"planner failed closed repeatedly: {exc}")
@@ -316,14 +386,106 @@ class MissionOrchestrator:
             if fallback is None or fallback is planner:
                 return _closed_decision(f"planner failed closed: {exc}")
             try:
-                return fallback.plan(ctx)
+                fallback_decision = fallback.plan(ctx)
+                self._record_invocation(
+                    state,
+                    planner,
+                    succeeded=False,
+                    note=str(exc),
+                    fallback=fallback,
+                )
+                return fallback_decision
             except PlannerInvalidDecision as exc2:
+                self._record_invocation(state, planner, succeeded=False, note=str(exc2))
                 return _closed_decision(f"fallback planner failed closed: {exc2}")
         except Exception as exc:  # noqa: BLE001 - planner infrastructure failures
             state.invalid_plans += 1
+            self._record_invocation(state, planner, succeeded=False, note=str(exc))
+            if (
+                policy.planner_mode is ExecutionMode.REAL
+                and isinstance(planner, LLMPlanner)
+            ):
+                state.stop_reason = StopReason.REAL_MODE_GUARD
+                return _closed_decision(
+                    f"planner_mode=real provider failure (no fallback): {exc}"
+                )
+            if policy.planner_mode is ExecutionMode.REAL:
+                state.stop_reason = StopReason.REAL_MODE_GUARD
+                return _closed_decision(
+                    f"planner_mode=real planner failure (no fallback): {exc}"
+                )
             if state.invalid_plans >= policy.invalid_plan_limit:
                 state.stop_reason = StopReason.REPEATED_INVALID_PLANNER
-            return _closed_decision(f"planner infrastructure failure: {type(exc).__name__}")
+                return _closed_decision(f"planner failed closed repeatedly: {exc}")
+            fallback = self._fallback_planner
+            if fallback is None or fallback is planner:
+                return _closed_decision(
+                    f"planner infrastructure failure: {type(exc).__name__}"
+                )
+            try:
+                fallback_decision = fallback.plan(ctx)
+                self._record_invocation(
+                    state, planner, succeeded=False, note=str(exc), fallback=fallback
+                )
+                return fallback_decision
+            except PlannerInvalidDecision as exc2:
+                self._record_invocation(
+                    state, planner, succeeded=False, note=str(exc2)
+                )
+                return _closed_decision(f"fallback planner failed closed: {exc2}")
+
+    def _record_invocation(
+        self,
+        state: MissionRuntimeState,
+        planner: PlannerBase,
+        *,
+        succeeded: bool,
+        note: str | None = None,
+        fallback: PlannerBase | None = None,
+    ) -> None:
+        """Record what actually happened with the LLM (or its absence).
+
+        Invocation labels are honest runtime facts, never configuration:
+        ``REAL`` (a real model answered), ``MOCK`` (a mock provider answered),
+        ``FALLBACK`` (the LLM was attempted but a deterministic planner
+        answered), ``NOT_USED`` (no LLM planner participated). A REAL-mode run
+        never silently falls back: it records ``health=FAIL`` and lets the
+        caller stop the mission.
+        """
+        status = state.llm_status
+        if status is None:
+            status = LLMRuntimeStatus(
+                mode=getattr(state, "execution_mode", ExecutionMode.AUTO)
+            )
+            state.llm_status = status
+        if fallback is not None:
+            status.invocation = "FALLBACK"
+            status.health = "FAIL"
+            status.inference_validated = False
+            status.message = note or status.message
+            return
+        if isinstance(planner, LLMPlanner):
+            provider_name = status.provider or "unknown"
+            is_real = provider_name != "mock"
+            status.provider = provider_name
+            status.model = status.model or "unknown"
+            if succeeded and is_real:
+                status.invocation = "REAL"
+                status.health = "PASS"
+                status.inference_validated = True
+            elif succeeded:
+                status.invocation = "MOCK"
+                status.health = "PASS"
+                status.inference_validated = True
+            else:
+                status.invocation = "MOCK" if not is_real else "REAL"
+                status.health = "FAIL"
+                status.inference_validated = False
+                if is_real:
+                    status.message = note or status.message
+        else:
+            status.invocation = "NOT_USED"
+            status.health = "PASS"
 
     # ------------------------------------------------------------------
     # Gates (before any transport)
@@ -369,23 +531,85 @@ class MissionOrchestrator:
             instruction.note = "scope enforcement failed"
             return DispatchOutcome(success=False, error="out of scope")
 
-        # Gate 3: adapter selection (mock vs real-controlled)
+        # Gate 3: adapter selection (mock vs real-controlled), honoring the
+        # declared execution mode. REAL requires a real transport and fails
+        # instead of falling back to mock; MOCK forbids real transport.
+        mission = self.app.mission_manager.get(mission_id)
+        profile = self._profile(mission)
+        policy = self._policy(mission)
+        exec_mode = policy.execution_mode
+
         real_adapter = self.router.adapter_for(capability)
-        if real_adapter is not None:
-            mission = self.app.mission_manager.get(mission_id)
-            profile = self._profile(mission)
-            policy = self._policy(mission)
-            real_enabled = policy.allow_real_controlled and self.allow_real_controlled
-            real_forbidden_profile = profile is AssessmentProfile.CONTROLLED_DEMONSTRATION
-            if real_enabled and not real_forbidden_profile:
-                return self._run_real(mission_id, scope, state, instruction, real_adapter, target)
-            engine = self.router.engine_for(capability)
-            if engine is None:
+        real_enabled = (
+            policy.allow_real_controlled and self.allow_real_controlled
+        )
+        real_forbidden_profile = (
+            profile is AssessmentProfile.CONTROLLED_DEMONSTRATION
+        )
+
+        if exec_mode is ExecutionMode.REAL:
+            can_run_real = (
+                real_adapter is not None and real_enabled and not real_forbidden_profile
+            )
+            if not can_run_real:
                 instruction.status = InvestigationStatus.BLOCKED
-                instruction.note = "real-controlled adapter not enabled for mission"
-                return DispatchOutcome(success=False, error="real adapter disabled")
+                instruction.note = (
+                    "execution_mode=real requires an enabled real-controlled "
+                    "adapter; real transport unavailable for this capability"
+                )
+                state.stop_reason = StopReason.REAL_MODE_GUARD
+                self._append_timeline(
+                    state,
+                    instruction,
+                    status="blocked",
+                    reason=instruction.note,
+                )
+                return DispatchOutcome(
+                    success=False,
+                    error=f"real transport unavailable for {capability} (execution_mode=real)",
+                )
+            return self._run_real(
+                mission_id, scope, state, instruction, real_adapter, target
+            )
+
+        if (
+            real_adapter is not None
+            and real_enabled
+            and not real_forbidden_profile
+            and exec_mode is ExecutionMode.AUTO
+        ):
+            return self._run_real(
+                mission_id, scope, state, instruction, real_adapter, target
+            )
+
+        engine = self.router.engine_for(capability)
+        if engine is None:
+            instruction.status = InvestigationStatus.BLOCKED
+            instruction.note = "no usable transport binding for capability"
+            return DispatchOutcome(success=False, error="no engine binding")
 
         return self._run_mock(mission_id, scope, state, instruction, capability, target)
+
+    def _append_timeline(
+        self,
+        state: MissionRuntimeState,
+        instruction: InstructionRecord,
+        *,
+        status: str,
+        reason: str,
+    ) -> None:
+        state.timeline.append(
+            MissionTimelineEntry(
+                capability=instruction.capability,
+                target=instruction.target,
+                source=instruction.source.value,
+                priority=instruction.priority.value,
+                status=status,
+                adapter=state.last_adapter_mode,
+                reason=reason,
+                evidence_ids=list(instruction.evidence_ids),
+            )
+        )
 
     def _run_mock(
         self,
@@ -438,6 +662,13 @@ class MissionOrchestrator:
             adapter_mode=AdapterMode.MOCK_ONLY,
         )
         instruction.note = outcome.summary
+        if outcome.success:
+            state.last_adapter_mode = AdapterMode.MOCK_ONLY
+            state.transport_mode = "mock"
+            state.mock_observations += 1
+            self._append_timeline(
+                state, instruction, status="executed", reason=outcome.summary
+            )
         return outcome
 
     def _run_real(
@@ -466,6 +697,13 @@ class MissionOrchestrator:
             adapter_mode=AdapterMode.REAL_CONTROLLED,
         )
         instruction.note = outcome.summary
+        if outcome.success:
+            state.last_adapter_mode = AdapterMode.REAL_CONTROLLED
+            state.transport_mode = "real_controlled"
+            state.real_observations += 1
+            self._append_timeline(
+                state, instruction, status="observed", reason=outcome.summary
+            )
         return outcome
 
     def _record_real_evidence(
@@ -491,6 +729,7 @@ class MissionOrchestrator:
             provenance=Provenance(
                 capability_id=instruction.capability,
                 provenance_type=ProvenanceType.DIRECT,
+                mode=EvidenceSource.REAL,
             ),
         )
         try:
@@ -550,6 +789,15 @@ class MissionOrchestrator:
             if decision.value == "authorized":
                 authorized.append(capability)
         real = set(self.router.real_controlled())
+        real_authorized = [cap for cap in authorized if cap in real]
+        if self._policy(mission).execution_mode is ExecutionMode.REAL:
+            # REAL execution is restricted to real transports only; the
+            # planner may only propose capabilities a real adapter can serve.
+            return CapabilityRouting(
+                applicable=real_authorized,
+                authorized=real_authorized,
+                real_controlled=real_authorized,
+            )
         return CapabilityRouting(
             applicable=applicable,
             authorized=authorized,
@@ -587,6 +835,12 @@ class MissionOrchestrator:
             return []
         rows: list[EvidenceViewRow] = []
         for item in evidence:
+            provenance = getattr(item, "provenance", None)
+            source = (
+                EvidenceSource.REAL
+                if provenance is not None and provenance.mode is EvidenceSource.REAL
+                else EvidenceSource.MOCK
+            )
             rows.append(
                 EvidenceViewRow(
                     evidence_id=str(item.id),
@@ -598,6 +852,7 @@ class MissionOrchestrator:
                     timestamp=item.timestamp,
                     summary=_safe_summary(item),
                     redacted=_needs_redaction_flag(item),
+                    source=source,
                 )
             )
         return rows
@@ -769,6 +1024,8 @@ class MissionOrchestrator:
             StopReason.REPEATED_INVALID_PLANNER,
             StopReason.DUPLICATE_EVICTION,
             StopReason.EVIDENCE_SATURATION,
+            StopReason.REAL_MODE_GUARD,
+            StopReason.PROVIDER_HEALTH_FAILED,
         ):
             return True
         if state.steps_completed >= policy.max_steps:
@@ -832,6 +1089,11 @@ class MissionOrchestrator:
             StopReason.MAX_REPLANS,
         ):
             target_status = MissionStatus.PAUSED
+        elif reason in (
+            StopReason.REAL_MODE_GUARD,
+            StopReason.PROVIDER_HEALTH_FAILED,
+        ):
+            target_status = MissionStatus.FAILED
         else:
             target_status = MissionStatus.COMPLETED
         with contextlib.suppress(MissionError, ValueError):
@@ -883,6 +1145,30 @@ class MissionOrchestrator:
 
     def planner_id(self) -> str:
         return self._planner.planner_id
+
+    def provider_status(self) -> dict[str, Any]:
+        """Expose what the planner LLM actually is (provider/model/mode)."""
+        status: dict[str, Any] = {
+            "planner": getattr(self._planner, "planner_id", "unknown"),
+            "provider": "mock",
+            "model": "mock",
+        }
+        if isinstance(self._planner, LLMPlanner):
+            provider = self._planner._provider  # noqa: SLF001 - runtime observation
+            try:
+                meta = dict(provider.metadata() or {})
+            except Exception:  # noqa: BLE001 - metadata must never break the console
+                meta = {}
+            status["provider"] = str(meta.get("provider", "mock")).lower()
+            status["model"] = str(meta.get("model", "unknown"))
+        return status
+
+    def findings(self, mission_id: MissionID) -> list[FindingView]:
+        """Deterministic, evidence-backed findings for the console."""
+        return _build_findings(
+            mission_id=mission_id,
+            evidence=self._evidence_rows(mission_id),
+        )
 
     def policy_for(self, mission_id: MissionID) -> MissionPolicy:
         return self._policy(self.app.mission_manager.get(mission_id))
@@ -1019,6 +1305,95 @@ def _closed_decision(reason: str) -> PlannerDecision:
         reason=reason,
         source=PlannerSource.RULE,
     )
+
+
+_CAPABILITY_FINDING_TITLES: dict[str, str] = {
+    "recon.dns": "DNS resolution record observed",
+    "recon.tls_metadata": "TLS certificate metadata observed",
+    "recon.http_metadata": "HTTP response metadata observed",
+    "webapi.security_header_analysis": "Security-header posture observed",
+    "webapi.headers_inspection": "HTTP security headers inspected",
+    "webapi.tls_security": "TLS security posture assessed",
+    "network.port_scan": "Open-service footprint observed",
+}
+_CAPABILITY_FINDING_WHY: dict[str, str] = {
+    "recon.dns": "DNS records define the external attack surface and help "
+    "identify exposed, in-scope assets that warrant authorized investigation.",
+    "recon.tls_metadata": "Certificate metadata (issuer, validity, SANs) reveals "
+    "aging or mis-scoped certificates that can affect trust and availability.",
+    "recon.http_metadata": "HTTP metadata identifies the server banner and "
+    "framework surface; paired with observed headers it guides further "
+    "authorized, evidence-gated investigation.",
+    "webapi.security_header_analysis": "Missing or weak security headers "
+    "increase exposure to common browser-side attacks if an application "
+    "processes untrusted input.",
+}
+
+
+def _build_findings(mission_id: MissionID, evidence: list[EvidenceViewRow]) -> list[FindingView]:
+    """Deterministic findings built strictly from recorded evidence.
+
+    A finding is created per (capability, target) pair and carries the
+    strongest confidence actually observed on that pair. The epistemic status
+    mirrors ``EvidenceStatus`` (observed/inferred/hypothesized/validated) and
+    is copied verbatim from the evidence — the orchestrator never labels a
+    finding ``validated`` on its own. The real-vs-mock ``source`` comes from
+    the evidence provenance, so a mock-only demo never claims real findings.
+    """
+    groups: dict[tuple[str, str], list[EvidenceViewRow]] = {}
+    for row in evidence:
+        groups.setdefault((row.source_capability, row.target), []).append(row)
+
+    findings: list[FindingView] = []
+    for (capability, target), rows in sorted(groups.items()):
+        status = max(
+            (row.status for row in rows),
+            key=lambda value: _EPISTEMIC_RANK.get(value, 0),
+        )
+        confidence = max(
+            (row.confidence for row in rows),
+            key=lambda value: _CONFIDENCE_RANK.get(value, 0),
+        )
+        highest_confidence_row = max(
+            rows, key=lambda row: _CONFIDENCE_RANK.get(row.confidence, 0)
+        )
+        findings.append(
+            FindingView(
+                finding_id=_finding_id(mission_id, capability, target),
+                title=_CAPABILITY_FINDING_TITLES.get(
+                    capability, f"{capability} observation on {target}"
+                ),
+                capability=capability,
+                affected_asset=target,
+                evidence_ids=[row.evidence_id for row in rows],
+                why_it_matters=_CAPABILITY_FINDING_WHY.get(capability, ""),
+                confidence=confidence,
+                status=status,
+                source=highest_confidence_row.source,
+                observed_at=max(rows, key=lambda row: row.timestamp).timestamp,
+            )
+        )
+    return findings
+
+
+_EPISTEMIC_RANK: dict[str, int] = {
+    "hypothesized": 0,
+    "observed": 1,
+    "inferred": 2,
+    "validated": 3,
+}
+
+_CONFIDENCE_RANK: dict[str, int] = {
+    "low": 0,
+    "medium": 1,
+    "high": 2,
+    "confirmed": 3,
+}
+
+
+def _finding_id(mission_id: MissionID, capability: str, target: str) -> str:
+    digest = hashlib.sha256(f"{mission_id}:{capability}:{target}".encode())
+    return f"FIN-{digest.hexdigest()[:10].upper()}"
 
 
 def _synthetic_session_id() -> SessionID:

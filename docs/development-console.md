@@ -51,6 +51,32 @@ This gate prevents accidental ambient exposure of the temporary UI. It is
 **not** a substitute for the orchestrator's own authorization/scope gates,
 which remain authoritative.
 
+## HTTP Server & Temporary Public URL
+
+The console can be exposed over HTTP by a thin built-in server
+(`blackforge/ui/server.py`):
+
+* `GET /health` is **public** and returns `200 OK` so load balancers, tunnel
+  health probes and notebooks can verify liveness,
+* every other endpoint (e.g. `GET /api/status`) requires the console token via
+  an `Authorization: Bearer <token>` header, checked against the same
+  `AccessGate` as the local console,
+* the server binds `127.0.0.1` and prints its local `base_url`.
+
+To exercise the real **temporary public URL** requirement, the console server
+is published through a tunnel (`blackforge/runtime/tunnel.py`) that tries, in
+order, `cloudflared`, `ngrok`, and `localtunnel` — whichever binary is
+available:
+
+* the tunnel wraps the **local** console server (the tunnel binary needs no
+  Blackforge knowledge), so the orchestrator, access gate and redaction layers
+  are all still in the path of every request,
+* `start_tunnel(port)` returns a `TunnelSession` whose `public_url` the
+  notebook health-probes over the public internet,
+* if no tunnel binary is available the tunnel helper raises
+  `TunnelUnavailableError` and the validation notebook fails loudly — the
+  temporary public URL is a required remediation, never silently skipped.
+
 ## Mission Workflow
 
 Through the console an operator can:
@@ -67,7 +93,10 @@ Through the console an operator can:
      (`in_scope` / `candidate` / `out_of_scope`) and an authorization flag,
    * **evidence** — redaction-safe evidence summaries,
    * **attack graph** — a descriptive, evidence-backed graph summary with open
-     gaps.
+     gaps,
+   * **findings** — evidence-backed conclusions with an epistemic status
+     (`observed` / `inferred` / `hypothesized` / `validated`) that are never
+     self-validated.
 
 ## Mission-Aware Capability View
 
@@ -92,3 +121,7 @@ the planner share.
 * `blackforge/ui/access.py` — `AccessGate` (temporary access token gating)
 * `blackforge/ui/service.py` — `DevelopmentConsoleService` (application API)
 * `blackforge/ui/console.py` — `DevelopmentConsole` (thin rendering UI)
+* `blackforge/ui/server.py` — token-gated HTTP server (`/health` public,
+  `Bearer`-gated API)
+* `blackforge/runtime/tunnel.py` — temporary public URL via cloudflared / ngrok /
+  localtunnel (whichever binary is available)

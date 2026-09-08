@@ -19,20 +19,28 @@ caller supplies a provider instance; no network transport lives here.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from blackforge.orchestration.models import (
     AssessmentProfile,
     AssetSummary,
     CapabilityView,
     EvidenceViewRow,
+    ExecutionMode,
+    FindingView,
     GraphSummary,
+    LLMRuntimeStatus,
     MissionPolicy,
     MissionRuntimeState,
     MissionSetup,
     MissionSummary,
 )
 from blackforge.orchestration.orchestrator import MissionOrchestrator
+
+if TYPE_CHECKING:  # pragma: no cover - annotations only
+    from collections.abc import Callable
+
+    from blackforge.intelligence.llm.base import LLMProvider
 
 
 class ConsoleError(Exception):
@@ -64,8 +72,15 @@ class DevelopmentConsoleService:
     this object and may only use these methods.
     """
 
-    def __init__(self, app: Any, *, orchestrator: MissionOrchestrator | None = None) -> None:
+    def __init__(
+        self,
+        app: Any,
+        *,
+        orchestrator: MissionOrchestrator | None = None,
+        llm_resolver: Callable[[str], LLMProvider | None] | None = None,
+    ) -> None:
         self._orchestrator = orchestrator or MissionOrchestrator(app)
+        self._llm_resolver = llm_resolver
 
     # ------------------------------------------------------------------
     # Mission lifecycle (creation always funnels through the orchestrator)
@@ -82,6 +97,9 @@ class DevelopmentConsoleService:
         max_runtime_seconds: float = 300.0,
         max_replans: int = 3,
         allow_real_controlled: bool = False,
+        execution_mode: str = "auto",
+        planner_mode: str = "auto",
+        validation_target: str | None = None,
     ) -> MissionSummary:
         """Create a new mission bound to the seed target.
 
@@ -90,11 +108,21 @@ class DevelopmentConsoleService:
         The scope's `allowed_capabilities` is left empty (all registered
         capabilities subject to authorization/risk gates); the max risk is
         capped by the assessment profile.
+
+        ``execution_mode``/``planner_mode`` are ``mock`` | ``real`` | ``auto``
+        and are enforced by the orchestrator (REAL fails instead of silently
+        falling back to mock). ``validation_target`` records the authorized
+        reachable target used for real-world validation.
         """
         try:
             profile_enum = AssessmentProfile(profile)
         except ValueError as exc:
             raise ConsoleError(f"unknown assessment profile: {profile}") from exc
+        try:
+            exec_mode = ExecutionMode(execution_mode)
+            plan_mode = ExecutionMode(planner_mode)
+        except ValueError as exc:
+            raise ConsoleError(f"invalid mode: {exc}") from exc
 
         policy = MissionPolicy(
             max_steps=max_steps,
@@ -102,6 +130,9 @@ class DevelopmentConsoleService:
             max_runtime_seconds=max_runtime_seconds,
             max_replans=max_replans,
             allow_real_controlled=allow_real_controlled,
+            execution_mode=exec_mode,
+            planner_mode=plan_mode,
+            validation_target=validation_target,
         )
         setup = MissionSetup(
             name=name or "Development Console Mission",
@@ -132,13 +163,17 @@ class DevelopmentConsoleService:
         mission_id: str,
         *,
         planner: str = "rule",
-        llm_provider: Any | None = None,
+        llm_provider: LLMProvider | None = None,
+        provider: str = "mock",
     ) -> MissionRuntimeState:
         """Run a mission with an explicit planner.
 
         ``planner`` may be ``mock``, ``rule``, or ``llm``. An ``llm``
-        selection requires a provider instance; otherwise it raises quickly.
-        All execution still passes through the orchestrator's gates.
+        selection requires a provider: pass one directly, or rely on the
+        service's ``llm_resolver`` and name one via ``provider``
+        (``mock``, ``ollama``, ``huggingface``). All execution still passes
+        through the orchestrator's gates; planner/execution modes are
+        enforced there and never silently downgraded.
         """
         self._require_mission(mission_id)
         if not PlannerSelection.is_valid(planner):
@@ -150,11 +185,14 @@ class DevelopmentConsoleService:
         elif planner == PlannerSelection.RULE:
             orch_planner = self._orchestrator.rule_planner
         elif planner == PlannerSelection.LLM:
-            if llm_provider is None:
-                raise ConsoleError("llm planner selected but no provider supplied")
+            resolved = llm_provider
+            if resolved is None and self._llm_resolver is not None:
+                resolved = self._llm_resolver(provider)
+            if resolved is None:
+                raise ConsoleError("llm planner selected but no provider available")
             from blackforge.orchestration.planner import LLMPlanner
 
-            orch_planner = LLMPlanner(provider=llm_provider)
+            orch_planner = LLMPlanner(provider=resolved)
 
         return self._orchestrator.run_mission(
             mission_id, planner=orch_planner
@@ -179,12 +217,35 @@ class DevelopmentConsoleService:
         self._require_mission(mission_id)
         return self._orchestrator.graph_summary(mission_id)
 
+    def findings(self, mission_id: str) -> list[FindingView]:
+        self._require_mission(mission_id)
+        return self._orchestrator.findings(mission_id)
+
     def runtime(self, mission_id: str) -> MissionRuntimeState | None:
         self._orchestrator.mission_record(mission_id)
         return self._orchestrator.runtime(mission_id)
 
+    def llm_status(self, mission_id: str) -> LLMRuntimeStatus | None:
+        state = self.runtime(mission_id)
+        if state is None:
+            return None
+        return state.llm_status
+
     def planner_id(self) -> str:
         return self._orchestrator.planner_id()
+
+    def provider_status(self) -> dict[str, Any]:
+        return self._orchestrator.provider_status()
+
+    def status(self) -> dict[str, Any]:
+        """High-level console status payload (never raw storage)."""
+        real_ids = self._orchestrator.router.real_controlled()
+        return {
+            "missions": self.list_mission_ids(),
+            "capabilities_registered": len(self._orchestrator.router.list_registered()),
+            "real_controlled_capabilities": real_ids,
+            **self.provider_status(),
+        }
 
     def orchestrator(self) -> MissionOrchestrator:
         return self._orchestrator

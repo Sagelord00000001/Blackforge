@@ -117,6 +117,18 @@ class DevelopmentConsole:
         _kv(lines, "Steps", f"{state.steps_completed} complete / {state.steps_remaining} left")
         _kv(lines, "Capability calls", str(state.capability_calls))
         _kv(lines, "Replans", str(state.replans))
+        _kv(lines, "Execution mode", state.execution_mode.value)
+        transport = (
+            f"{state.transport_mode} "
+            f"(mock={state.mock_observations}, real={state.real_observations})"
+        )
+        _kv(lines, "Transport", transport)
+        if state.llm_status is not None:
+            _kv(lines, "Planner mode", state.llm_status.mode.value)
+            _kv(lines, "LLM provider", state.llm_status.provider)
+            _kv(lines, "LLM model", state.llm_status.model)
+            _kv(lines, "LLM invocation", state.llm_status.invocation)
+            _kv(lines, "LLM health", state.llm_status.health)
 
         lines.append("")
         _render_capabilities(lines, self.service.capability_view(mission_id))
@@ -124,6 +136,8 @@ class DevelopmentConsole:
         _render_assets(lines, self.service.assets(mission_id))
         lines.append("")
         _render_evidence(lines, self.service.evidence_rows(mission_id))
+        lines.append("")
+        _render_findings(lines, self.service.findings(mission_id))
         lines.append("")
         _render_graph(lines, self.service.graph_summary(mission_id))
         return lines
@@ -143,6 +157,10 @@ class DevelopmentConsole:
             "steps_completed": summary.runtime.steps_completed,
             "steps_remaining": summary.runtime.steps_remaining,
             "capability_calls": summary.runtime.capability_calls,
+            "execution_mode": summary.runtime.execution_mode.value,
+            "transport_mode": summary.runtime.transport_mode,
+            "real_observations": summary.runtime.real_observations,
+            "mock_observations": summary.runtime.mock_observations,
             "stop_reason": (
                 summary.runtime.stop_reason.value if summary.runtime.stop_reason else None
             ),
@@ -155,8 +173,13 @@ class DevelopmentConsole:
             "steps_completed": state.steps_completed,
             "steps_remaining": state.steps_remaining,
             "capability_calls": state.capability_calls,
+            "execution_mode": state.execution_mode.value,
+            "transport_mode": state.transport_mode,
+            "real_observations": state.real_observations,
+            "mock_observations": state.mock_observations,
             "stop_reason": state.stop_reason.value if state.stop_reason else None,
             "instruction_count": len(state.instructions),
+            "llm_status": state.llm_status.model_dump(mode="json") if state.llm_status else None,
         }
 
 
@@ -224,7 +247,26 @@ def _render_evidence(out: list[str], evidence: Any) -> list[str]:
     for row in evidence:
         out.append(
             f"[{row.evidence_type}] {row.source_capability} @ {row.target} "
-            f"({row.confidence}) redacted={row.redacted}"
+            f"({row.confidence}) source={row.source.value} redacted={row.redacted}"
+        )
+    return out
+
+
+def _render_findings(out: list[str], findings: Any) -> list[str]:
+    _rule(out, "FINDINGS (evidence-backed)")
+    if not findings:
+        out.append("  (no findings yet — findings are built strictly from evidence)")
+        return out
+    out.append(
+        f"{_pad('Finding', 12)}{_pad('Title', 44)}"
+        f"{_pad('Status', 12)}{_pad('Conf', 10)}{_pad('Source', 6)}"
+    )
+    out.append("-" * 100)
+    for finding in findings:
+        out.append(
+            f"{_pad(finding.finding_id, 12)}{_pad(finding.title[:42], 44)}"
+            f"{_pad(finding.status, 12)}{_pad(finding.confidence, 10)}"
+            f"{_pad(finding.source.value, 6)}"
         )
     return out
 

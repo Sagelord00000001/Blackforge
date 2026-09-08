@@ -18,6 +18,7 @@ from blackforge.attack_graph.models import (
     GraphRelationship,  # noqa: TC001 - runtime refs for pydantic resolution
 )
 from blackforge.core.types import MissionID, RiskLevel, SessionID, TargetType
+from blackforge.evidence.models import EvidenceSource
 from blackforge.scope.models import (
     TargetScope,  # noqa: TC001 - runtime refs for pydantic resolution
 )
@@ -40,11 +41,27 @@ class AdapterMode(str, Enum):
     REAL_CONTROLLED = "real_controlled"
 
 
+class ExecutionMode(str, Enum):
+    """Explicit planner/transport mode. No silent mock fallback.
+
+    * ``MOCK`` — never invoke a real transport or a real model.
+    * ``REAL`` — a real transport/model is *required*; if it is unavailable the
+      run fails (``REAL_MODE_GUARD``) instead of falling back to mock.
+    * ``AUTO`` — attempt real when configured and available; otherwise fall
+      back to mock and *report* the fallback explicitly.
+    """
+
+    MOCK = "mock"
+    REAL = "real"
+    AUTO = "auto"
+
+
 class AssessmentProfile(str, Enum):
     """Caps a mission to an explicit, honest level of authorization."""
 
     AUTHORIZED_ASSESSMENT = "authorized_assessment"
     CONTROLLED_DEMONSTRATION = "controlled_demonstration"
+    TRAINING_APPLICATION = "training_application"
 
 
 class InvestigationStatus(str, Enum):
@@ -72,6 +89,8 @@ class StopReason(str, Enum):
     DUPLICATE_EVICTION = "duplicate_eviction"
     CANCELLED = "cancelled"
     PLANNER_FAILED = "planner_failed"
+    REAL_MODE_GUARD = "real_mode_guard"
+    PROVIDER_HEALTH_FAILED = "provider_health_failed"
 
 
 class PlannerSource(str, Enum):
@@ -135,6 +154,47 @@ class MissionPolicy(BaseModel):
     use_subdomain_auto_include: bool = True
     allow_real_controlled: bool = False
     auto_approve_high_risk: bool = False
+    execution_mode: ExecutionMode = ExecutionMode.AUTO
+    planner_mode: ExecutionMode = ExecutionMode.AUTO
+    validation_target: str | None = None
+
+
+class LLMRuntimeStatus(BaseModel):
+    """Honest, observable record of how the planner LLM actually ran.
+
+    ``invocation`` is one of:
+
+    * ``REAL`` — a real model answered (provider health passed),
+    * ``MOCK`` — a mock provider answered,
+    * ``FALLBACK`` — a real model was intended but the run fell back and
+      reports it,
+    * ``NOT_USED`` — no LLM planner was used for this run.
+
+    Nothing here is inferred from configuration; every field is recorded at
+    run time from what actually happened.
+    """
+
+    mode: ExecutionMode = ExecutionMode.AUTO
+    provider: str = "mock"
+    model: str = "mock"
+    invocation: str = "MOCK"
+    health: str = "PASS"
+    inference_validated: bool = False
+    message: str | None = None
+
+
+class MissionTimelineEntry(BaseModel):
+    """One executed/blocked investigation in the console timeline."""
+
+    capability: str
+    target: str
+    source: str
+    priority: str = "medium"
+    status: str
+    adapter: AdapterMode = AdapterMode.MOCK_ONLY
+    reason: str = ""
+    evidence_ids: list[str] = Field(default_factory=list)
+    at: float = Field(default_factory=time.time)
 
 
 class MissionSetup(BaseModel):
@@ -209,6 +269,29 @@ class EvidenceViewRow(BaseModel):
     timestamp: float
     summary: str = ""
     redacted: bool = False
+    source: EvidenceSource = EvidenceSource.MOCK
+
+
+class FindingView(BaseModel):
+    """A deterministic, evidence-backed security explanation.
+
+    Findings separate the *observation* (what a real/mock transport actually
+    saw) from the *inference* (why it matters) and the *verification status*.
+    ``status`` mirrors the epistemic ladder: observed -> inferred ->
+    hypothesized -> validated. A finding is never marked ``validated`` just
+    because a model believes it.
+    """
+
+    finding_id: str
+    title: str
+    capability: str
+    affected_asset: str
+    evidence_ids: list[str] = Field(default_factory=list)
+    why_it_matters: str = ""
+    confidence: str = "medium"
+    status: str = "observed"
+    source: EvidenceSource = EvidenceSource.MOCK
+    observed_at: float = Field(default_factory=time.time)
 
 
 class GraphEdgeView(BaseModel):
@@ -301,6 +384,13 @@ class MissionRuntimeState(BaseModel):
     last_decision: PlannerDecision | None = None
     last_instruction: InstructionRecord | None = None
     instructions: list[InstructionRecord] = Field(default_factory=list)
+    execution_mode: ExecutionMode = ExecutionMode.AUTO
+    transport_mode: str = "mock"
+    last_adapter_mode: AdapterMode = AdapterMode.MOCK_ONLY
+    mock_observations: int = 0
+    real_observations: int = 0
+    llm_status: LLMRuntimeStatus | None = None
+    timeline: list[MissionTimelineEntry] = Field(default_factory=list)
 
     def active_instruction(self, capability: str, target: str) -> InstructionRecord | None:
         needle = (capability, target)
@@ -332,16 +422,21 @@ __all__ = [
     "CapabilityView",
     "CapabilityViewRow",
     "DecisionKind",
-    "ExecutionPhase",
+    "EvidenceSource",
     "EvidenceViewRow",
+    "ExecutionMode",
+    "ExecutionPhase",
+    "FindingView",
     "GraphEdgeView",
     "GraphSummary",
     "InstructionRecord",
     "InvestigationStatus",
+    "LLMRuntimeStatus",
     "MissionPolicy",
     "MissionRuntimeState",
     "MissionSetup",
     "MissionSummary",
+    "MissionTimelineEntry",
     "PlannerContext",
     "PlannerDecision",
     "PlannerSource",

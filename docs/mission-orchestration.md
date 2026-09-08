@@ -62,6 +62,28 @@ A mission is created from a validated **seed target** and a bounded
   caps risk; `controlled_demonstration` forces real-controlled adapters off,
 * the execution budget (`MissionPolicy`) sets deterministic stop conditions.
 
+## Execution Modes (MOCK / REAL / AUTO)
+
+Every mission declares an **execution mode** in its `MissionPolicy`. The mode
+is never inferred or silently upgraded/downgraded at runtime:
+
+* **MOCK** — only deterministic mock transports run; real-controlled adapters
+  are refused.
+* **REAL** — a real, read-only transport is required. If the operator-level
+  `allow_real_controlled` flag, the mission policy, or the assessment profile
+  do not all permit a real transport, the loop stops with
+  `REAL_MODE_GUARD` — it **never silently falls back to mock**.
+* **AUTO** — real transport is preferred when authorized; when it is not, the
+  loop falls back to the deterministic mock path and the fallback is recorded
+  explicitly on the mission's LLM status (`invocation=FALLBACK`, `health=FAIL`).
+
+The planner mode is declared separately (`mock` / `rule` / `llm`); requesting
+`llm` with a mock-only provider is coerced to `rule` and recorded as
+`invocation=NOT_USED`, never assumed. A real LLM provider that answers records
+`invocation=REAL` (`health=PASS`); one that fails under AUTO is reported as a
+fallback (`invocation=FALLBACK`, `health=FAIL`); under REAL mode a provider
+failure fails the loop — no invisible downgrade is possible.
+
 ## Fail-Closed Planning
 
 Planners return a single typed `PlannerDecision` that names a **registered
@@ -81,6 +103,7 @@ The loop terminates on any of:
 * `REPEATED_INVALID_PLANNER`
 * `DUPLICATE_EVICTION`
 * `EVIDENCE_SATURATION`
+* `REAL_MODE_GUARD` — REAL asked for but no real transport is authorized
 * `CANCELLED`
 * a planner-requested stop (`NO_ACTIONS_REMAIN`)
 
@@ -96,13 +119,31 @@ Four bounded, std-lib adapters are installed on the orchestrator:
 They only fire when the mission policy **and** the operator-level
 `allow_real_controlled` flag are both set and the profile permits it. Their
 output is normalized into **redaction-safe** evidence (secret-like headers are
-hashed before anything is returned).
+hashed before anything is returned), and every real observation row is
+provenance-tagged `REAL` so mock and real evidence can never be confused.
+
+## Evidence-Backed Findings
+
+After a run, the orchestrator materializes mission **findings**: instance-level
+conclusions derived deterministically from the mission's evidence rows. Each
+finding:
+
+* is ranked by an **epistemic status** (`observed` / `inferred` /
+  `hypothesized` / `validated`) chosen from the evidence's confidence and mode,
+* records its **source capability**, target, and the confidence it was derived
+  from,
+* is **never self-validated** — a finding cannot be its own authority; the
+  `validation_state` field asserts this,
+* feeds the mission report rendered by the Development Console.
 
 ## Module Layout
 
+* `blackforge/evidence/models.py` — owns `EvidenceSource` (the evidence
+  package stays a leaf; `orchestration.models` re-exports it)
 * `blackforge/orchestration/models.py` — typed contracts (planner decisions,
-  policy, capability view, asset/evidence/graph views, mission runtime state)
-* `blackforge/orchestration/orchestrator.py` — the deterministic loop and gates
+  policy, execution modes, capability view, findings, mission runtime state)
+* `blackforge/orchestration/orchestrator.py` — the deterministic loop, gates,
+  mode enforcement, and invocation recording
 * `blackforge/orchestration/planner.py` — `MockPlanner`, `RuleBasedPlanner`,
   `LLMPlanner`, fail-closed wrappers
 * `blackforge/orchestration/routing.py` — capability registry -> engine/adapter

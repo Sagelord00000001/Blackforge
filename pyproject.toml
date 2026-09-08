@@ -63,6 +63,7 @@ addopts = [
 ]
 markers = [
     "integration: requires real model download (not run in CI by default)",
+    "real: opt-in Phase 14.1 real validation; requires BLACKFORGE_REAL_TARGET environment",
 ]
 
 [tool.mypy]

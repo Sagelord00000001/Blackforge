@@ -84,6 +84,25 @@ class AccessGate:
         self._sessions.append(AccessSession())
         return True
 
+    def verify(self, candidate: str | None) -> bool:
+        """Constant-time token check without creating an unlock session.
+
+        Used by the HTTP server to authorize each request: the token must be
+        supplied on every call and is validated without unlocking (so a single
+        ``POST /api/unlock`` from the notebook opens no ambient session).
+        """
+        if candidate is None:
+            return False
+        current = self._token or getattr(self, _GENERATED_ATTR, None)
+        if current is None:
+            current = self.generated_token()
+            setattr(self, _GENERATED_ATTR, current)
+        if not current:
+            return False
+        return hmac.compare_digest(
+            str(candidate).encode("utf-8"), current.encode("utf-8")
+        )
+
     def is_unlocked(self) -> bool:
         return bool(self._sessions)
 

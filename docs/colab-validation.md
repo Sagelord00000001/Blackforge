@@ -21,7 +21,13 @@ Chronological record of per-phase validation. **Validation type matters:**
 | 9 | Network & Infrastructure | `5bf7d8b` | LOCAL ONLY | full suite pass (830 passed, 5 skipped at this phase) | — | deterministic mock topology (`internal.example`, reserved `192.0.2.0/24`); bounded fail-closed port probes; size-capped + credential-redacted banners; mode-aware evidence dedup (PASSIVE never inherits ACTIVE confidence); failure-aware statuses; no attack-graph relationship types |
 | 10 | Identity / Active Directory | `835f0de` | LOCAL ONLY | full suite pass (881 passed, 5 skipped at this phase) | — | deterministic mock directory (`AELIONIX-CORP`, no real queries, no mutation); identity/group/role/permission/resource inventories + membership/role/permission/relationship/metadata observations; credential-material redaction (literal `REDACTED`) before any evidence row or world record; duplicates deterministically collapsed; metadata contradictions surfaced (authoritative OBSERVED vs correlated INFERRED); mode-aware evidence dedup (PASSIVE never inherits CONTROLLED confidence); failure-aware statuses incl. UNSUPPORTED_DIRECTORY / NO_EVIDENCE; identity entities namespaced by directory; no attack-graph relationship types |
 
-Latest committed phase at the time of writing: **Phase 10** (`835f0de`).
+| 11 | Cloud Security | `0c9571b` | LOCAL ONLY | full suite pass | — | deterministic mock cloud provider; no real cloud API traffic; no free-form execution; redaction + failure-aware statuses; see `docs/cloud-security.md` |
+| 12 | Containers / Kubernetes | `a89b3af` | LOCAL ONLY | full suite pass | — | deterministic mock cluster/namespace/workload fixtures; no real container/API access; no free-form execution; see `docs/container-kubernetes-security.md` |
+| 13 | Source & Runtime Correlation | `d42376f` | LOCAL ONLY | full suite pass | — | deterministic correlation of manifest/runtime data; never authors facts (unknown never fabricated as a match); see `docs/source-runtime-correlation.md` |
+| 14 | Attack Graph & Autonomous Planner | `6dc440b` | LOCAL ONLY | full suite pass | — | descriptive, derived, evidence-backed graph + budget-bounded fail-closed planner; no exploitation/attack-path execution; see `docs/attack-graph-autonomous-planner.md` |
+| 14.1 | Real Mission Integration, LLM Orchestration & Dev Console | `0894360` | LOCAL ONLY | full suite pass (1348 passed, 10 skipped at this phase, incl. 19 Layer A real-validation tests) | — | explicit MOCK / REAL / AUTO execution modes (REAL fails closed, no silent mock fallback; AUTO reports fallback); evidence-backed findings (never self-validated); access-gated Development Console over a token-gated HTTP server + temporary public tunnel; real Qwen planner records `invocation=REAL`; Layer B real-integration tests are env-gated (skipped without `BLACKFORGE_REAL_TARGET`); see section below |
+
+Latest committed phase at the time of writing: **Phase 14.1** (`0894360`).
 
 ---
 
@@ -532,19 +538,34 @@ See `docs/identity-directory-security.md` for the full architecture documentatio
 
 **Notebook:** `notebooks/blackforge_phase14_1_colab.ipynb`
 
-**Validation type:** LOCAL ONLY
+**Validation type:** LOCAL ONLY (network-dependent notebook cells — real DNS
+observation, temporary public tunnel, real Qwen inference — are validated by
+the notebook when executed on a real Colab runtime with internet access; the
+deterministic cells and the Layer A test suite run locally)
 
-**Test result:** full suite pass (1329 passed, 5 skipped at this phase, including the 29 orchestration + 27 development-console phase tests)
+**Test result:** full suite pass (**1348 passed, 10 skipped** at this phase,
+including the 29 orchestration, 27 development-console, and **19 Layer A
+real-validation** tests; the 5 remaining skips are the opt-in Layer B
+real-integration tests, which skip unless `BLACKFORGE_REAL_TARGET` (and
+`BLACKFORGE_REAL_MODEL` for the real-LLM class) are set)
 
 **Colab result:** —
 
 **Notes / limitations:** real-controlled observation is bounded, std-lib, and
 read-only (DNS / TLS / HTTP metadata, no redirects) and fires only when mission
-policy + operator flag + profile permit; planners may only return registered
-capabilities and in-scope targets (fail-closed); every execution funnels
-through the deterministic `MissionOrchestrator`; the Development Console is
-access-gated, talks only to a thin service API, and cannot bypass authorization,
-scope, evidence, or world-model storage; reports are redaction-safe.
+policy + operator flag + profile permit; execution mode is explicit and never
+inferred — **REAL fails closed with `REAL_MODE_GUARD` (no silent mock
+fallback)**, MOCK forbids real transports, and AUTO falls back only on an
+explicit planner failure recorded as `invocation=FALLBACK` / `health=FAIL`;
+planners may only return registered capabilities and in-scope targets
+(fail-closed); every execution funnels through the deterministic
+`MissionOrchestrator`; findings are evidence-backed and never self-validated;
+the Development Console is access-gated, talks only to a thin service API,
+cannot bypass authorization/scope/evidence/world-model storage, and publishes
+over a token-gated HTTP server reachable through a **temporary public URL**
+(cloudflared / ngrok / localtunnel); reports are redaction-safe; a real
+`Qwen/Qwen2.5-3B-Instruct` planner records `invocation=REAL` only when the real
+model answered.
 
 ### What Phase 14.1 Validates
 
@@ -556,20 +577,33 @@ scope, evidence, or world-model storage; reports are redaction-safe.
 - Fail-closed planning: unknown capabilities / out-of-scope targets / empty
   seeds rejected; repeated invalid plans and planner failures stop
   deterministically
+- **Execution modes enforced**: REAL without a real transport stops with
+  `REAL_MODE_GUARD` (no mock fallback); AUTO records planner fallback as
+  `invocation=FALLBACK` / `health=FAIL`; MOCK runs only mock transports; a
+  real LLM provider that answers records `invocation=REAL`
 - Real-controlled read-only observation adapters (`recon.dns`,
   `recon.tls_metadata`, `recon.http_metadata`,
-  `webapi.security_header_analysis`) installed and gated
+  `webapi.security_header_analysis`) installed and gated; real observation
+  rows are provenance-tagged `REAL`
 - Evidence → memory → world model → descriptive attack graph normalization on
-  every executed instruction
+  every executed instruction, plus deterministic evidence-backed **findings**
+  with an epistemic status that are never self-validated
 - Deterministic stop conditions: max steps / max capability calls / max runtime
   / max replans / repeated invalid plans / duplicate eviction / evidence
-  saturation / cancelled / planner-requested stop
+  saturation / `REAL_MODE_GUARD` / cancelled / planner-requested stop
 - Development Console: access gating, UI/service separation, mission-aware
   capability view (mock vs real-controlled), asset classification
-  (`in_scope` / `candidate` / `out_of_scope`), redaction-safe evidence, and a
-  descriptive attack-graph view
+  (`in_scope` / `candidate` / `out_of_scope`), redaction-safe evidence, a
+  descriptive attack-graph view, and findings; the console publishes over a
+  token-gated HTTP server (`/health` public, APIs `Bearer`-gated) with a
+  temporary public URL health-probed through the tunnel
 - AST security scan: no command-exec / raw-network / eval surface in
   `blackforge/orchestration` or `blackforge/ui`
+- Layer A (`tests/test_real_validation_phase14_1.py`): hermetically stubbed
+  real adapters, REAL evidence provenance, REAL no-fallback guard, AUTO
+  fallback reporting, HTTP/tunnel lifecycle — **19 passed**
+- Layer B (`tests/integration/test_real_integration_phase14_1.py`): opt-in
+  real integration (env-gated) — **5 skipped** without `BLACKFORGE_REAL_TARGET`
 
 See `docs/mission-orchestration.md` and `docs/development-console.md` for the
 full architecture documentation.
