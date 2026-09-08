@@ -24,6 +24,7 @@ import re
 import shutil
 import subprocess
 import time
+import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 from typing import Any
@@ -187,8 +188,17 @@ def _verify_public_url(url: str, *, timeout_seconds: int) -> None:
             with urllib.request.urlopen(  # noqa: S310 - public URL was operator-chosen
                 request, timeout=5
             ) as response:
-                if response.status == 200:
+                # Any 2xx/3xx/4xx means the tunnel forwarded and the backend
+                # answered; the console is token-gated, so 401 is a healthy
+                # server response, proof the tunnel is live. 5xx means the
+                # backend behind the tunnel is not attached yet -> keep waiting.
+                if response.status < 500:
                     return
+                last_error = RuntimeError(f"upstream responded {response.status}")
+        except urllib.error.HTTPError as exc:
+            if exc.code < 500:
+                return  # the backend answered with an auth gate - tunnel is live
+            last_error = exc
         except Exception as exc:  # noqa: BLE001 - verification is probing only
             last_error = exc
         time.sleep(2)

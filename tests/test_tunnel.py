@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import http.server
+import threading
 import types
 from typing import Any
 
@@ -9,6 +11,7 @@ from blackforge.runtime.tunnel import (
     _NGROK_URL_RE,
     TunnelUnavailableError,
     _await_url,
+    _verify_public_url,
 )
 
 
@@ -80,3 +83,45 @@ def test_no_url_raises_unavailable() -> None:
         assert "never published a public URL" in str(exc)
     else:
         raise AssertionError("expected TunnelUnavailableError")
+
+
+class _StatusHandler(http.server.BaseHTTPRequestHandler):
+    status = 200
+
+    def do_GET(self) -> None:
+        self.send_response(self.status)
+        self.end_headers()
+
+    def log_message(self, *args: Any) -> None:
+        return None
+
+
+def _serve(status: int):
+    _StatusHandler.status = status
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), _StatusHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    url = f"http://127.0.0.1:{server.server_address[1]}"
+    return server, url
+
+
+def test_verification_accepts_an_auth_gated_response() -> None:
+    server, url = _serve(401)
+    try:
+        _verify_public_url(url, timeout_seconds=10)
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_verification_walks_a_5xx_upstream_until_deadline() -> None:
+    server, url = _serve(503)
+    try:
+        _verify_public_url(url, timeout_seconds=1)
+    except TunnelUnavailableError as exc:
+        assert "did not become reachable" in str(exc)
+    else:
+        raise AssertionError("expected TunnelUnavailableError")
+    finally:
+        server.shutdown()
+        server.server_close()
