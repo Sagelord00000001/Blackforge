@@ -16,15 +16,21 @@ latest_completed_phase: 14.1
 next_phase: 15              # Multi-Agent Architecture
 
 # Latest commit id of the most recently completed phase (never invented; taken from git history).
-latest_phase_commit: 0894360
+latest_phase_commit: 5295de5
 
 last_known_validation:
-  tests_passed: 1329
-  tests_skipped: 5
+  tests_passed: 1348
+  tests_skipped: 10
   tests_failed: 0
   full_suite_command: "python -m pytest tests/ -q"
-  local_notebook_result: PASS    # phase-14.1 notebook executed locally (all 17 executed cells)
-  google_colab_result: null      # no real Google Colab execution recorded for Phase 14.1 yet
+  # 1348 = all phases incl. 29 orchestration + 27 development-console + 19 Layer A
+  # real-validation tests; 10 skips = 5 opt-in Layer B real integration (env-gated) +
+  # 1 real-model smoke (--run-integration) + 4 backend-restart-only marks.
+  local_notebook_result: null      # Phase 14.1 notebook rewritten for the remediation
+                                   # (execution modes, findings, HTTP+tunnel, real Qwen);
+                                   # JSON/syntax validated + cells covered by Layer A
+                                   # locally; network cells run only on a Colab runtime
+  google_colab_result: null        # no real Google Colab execution recorded for Phase 14.1 yet
 
 phases:
   0:
