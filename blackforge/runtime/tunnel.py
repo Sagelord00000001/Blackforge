@@ -28,7 +28,7 @@ import urllib.request
 from dataclasses import dataclass, field
 from typing import Any
 
-_CLOUDFLARED_URL_RE = re.compile(r"https://[a-z0-9-]+\.trycloudflare\.com")
+_CLOUDFLARED_URL_RE = re.compile(r"(https://[a-z0-9-]+\.trycloudflare\.com)")
 _NGROK_URL_RE = re.compile(r"url=(https://[^\s]+)")
 _LOCALTUNNEL_URL_RE = re.compile(r"(https://[a-z0-9-]+\.loca\.lt)")
 _CLOUDFLARED_ENV = "BLACKFORGE_TUNNEL_BINARY"
