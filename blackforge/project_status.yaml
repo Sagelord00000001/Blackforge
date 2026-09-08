@@ -16,7 +16,7 @@ latest_completed_phase: 14.1
 next_phase: 15              # Multi-Agent Architecture
 
 # Latest commit id of the most recently completed phase (never invented; taken from git history).
-latest_phase_commit: 40ebc9b
+latest_phase_commit: 74de784
 
 last_known_validation:
   tests_passed: 1348
