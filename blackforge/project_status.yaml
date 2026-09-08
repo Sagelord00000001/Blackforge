@@ -30,7 +30,11 @@ last_known_validation:
                                    # (execution modes, findings, HTTP+tunnel, real Qwen);
                                    # JSON/syntax validated + cells covered by Layer A
                                    # locally; network cells run only on a Colab runtime
-  google_colab_result: null        # no real Google Colab execution recorded for Phase 14.1 yet
+  google_colab_result: "PASS"      # 2026-09-08: full 53-cell Colab run green - all 15
+                                   # summary rows PASS incl. HTTP console + public tunnel
+                                   # (cloudflared quick tunnel) and REAL Qwen planner;
+                                   # transient 1033 page seen after teardown is expected
+                                   # (tunnel is ephemeral, stopped right after probes)
 
 phases:
   0:
